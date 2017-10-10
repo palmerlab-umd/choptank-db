@@ -243,68 +243,76 @@ library(RPostgreSQL) # database</code></pre>
 </div>
 <div id="connect-to-the-database" class="section level2">
 <h2>Connect to the database</h2>
-<p>To get familiar with the database, see the document on general database interactions</p>
+<p>Use <code>dbConnect()</code> to create an object called <code>db</code> for interacting with the database. To get familiar with the database, see the document on general database interactions.</p>
 </div>
 </div>
 <div id="read-in-your-data" class="section level1">
 <h1>Read in your data</h1>
 <p>This example uses a <code>.kmz</code> file created from Google Earth.</p>
 <pre class="r"><code>path = &quot;/nfs/palmer-group-data/Choptank/data&quot;
-wetlands &lt;- readOGR(file.path(path, &quot;SamplingFeature_sites.kmz&quot;))</code></pre>
+new_sites &lt;- readOGR(file.path(path, &quot;Soil_Chambers.kmz&quot;))</code></pre>
 <pre><code>## OGR data source with driver: LIBKML 
-## Source: &quot;/nfs/palmer-group-data/Choptank/data/SamplingFeature_sites.kmz&quot;, layer: &quot;SamplingFeature_sites&quot;
-## with 41 features
-## It has 12 fields</code></pre>
-</div>
-<div id="match-column-names-to-database-table" class="section level1">
-<h1>Match column names to database table</h1>
-<pre class="r"><code>new_samp_features &lt;- data.frame(&quot;samplingfeaturecode&quot; = wetlands$Name,
-                                &quot;samplingfeaturename&quot; = wetlands$description,
+## Source: &quot;/nfs/palmer-group-data/Choptank/data/Soil_Chambers.kmz&quot;, layer: &quot;Soil Chambers&quot;
+## with 26 features
+## It has 11 fields</code></pre>
+<blockquote>
+<p><code>new_sites</code> is a spatial polygons data frame, where the dataframe contains columns called <em>Name</em> and <em>description</em> from google earth file.</p>
+</blockquote>
+<div id="match-column-names-to-database-table" class="section level3">
+<h3>Match column names to database table</h3>
+<p>Now make data frame to append to sampling features table. Refer to the <a href="http://odm2.github.io/ODM2/schemas/ODM2_Current/tables/ODM2Core_SamplingFeatures.html">ODM2 documentation</a> for more details on each of the columsn in this table.</p>
+<ul>
+<li>code is the short 2 letter name</li>
+<li>name is a longer informative name</li>
+<li>type is site for locations (compared to speciment for samples)</li>
+<li><a href="http://vocabulary.odm2.org/samplingfeaturetype/">FEATURE TYPE CV</a></li>
+<li>for point data: convert geometry to a vector of well-known text (WKT) using writeWKT</li>
+</ul>
+<pre class="r"><code>new_samp_features &lt;- data.frame(&quot;samplingfeaturecode&quot; = new_sites$Name,
+                                &quot;samplingfeaturename&quot; = new_sites$description,
                                 &quot;samplingfeaturetypecv&quot; = &quot;site&quot;,
-                                &quot;featuregeometrywkt&quot; = writeWKT(wetlands, byid = TRUE),
+                                &quot;featuregeometrywkt&quot; = writeWKT(new_sites, byid = TRUE),
                                 &quot;samplingfeaturegeotypecv&quot; = &quot;point&quot;)</code></pre>
-<p>generate uuids</p>
-<pre class="r"><code>new_samp_features$samplingfeatureuuid &lt;- sapply(1:nrow(new_samp_features), UUIDgenerate)</code></pre>
-<p>wetlands is a spatial polygons data frame</p>
-<p>dataframe contains Name and description from google earth file</p>
+</div>
+<div id="generate-uuids" class="section level3">
+<h3>Generate uuids</h3>
+<pre class="r"><code>new_samp_features$samplingfeatureuuid &lt;- sapply(1:nrow(new_samp_features), UUIDgenerate)
+head(new_samp_features)</code></pre>
+<pre><code>##   samplingfeaturecode
+## 1             QB SC A
+## 2             QB SC E
+## 3             QB SC C
+## 4             QB SC B
+## 5             QB SC D
+## 6             JA SC A
+##                                                                samplingfeaturename
+## 1     most interior of 5 soil chambers on transect 5m apart (approximate location)
+## 2       most upland of 5 soil chambers on transect 5m apart (approximate location)
+## 3            middle of 5 soil chambers on transect 5m apart (approximate location)
+## 4 2nd most interior of 5 soil chambers on transect 5m apart (approximate location)
+## 5   2nd most upland of 5 soil chambers on transect 5m apart (approximate location)
+## 6  most interior of 3 soil chambers along transect 5m apart (approximate location)
+##   samplingfeaturetypecv                               featuregeometrywkt
+## 1                  site POINT (-75.8345276189573383 39.0544974094512867)
+## 2                  site POINT (-75.8343348231713748 39.0544029037487874)
+## 3                  site POINT (-75.8344736499219891 39.0544580928631575)
+## 4                  site POINT (-75.8345809369696013 39.0545292778680420)
+## 5                  site POINT (-75.8343937912614052 39.0544290909816567)
+## 6                  site POINT (-75.8258489541192660 39.0651438211572426)
+##   samplingfeaturegeotypecv                  samplingfeatureuuid
+## 1                    point 06dbb57e-ae16-11e7-9bb4-001dd8b71c2d
+## 2                    point de94cf32-1b29-4b4a-a67d-dd2121ec18ed
+## 3                    point bd5c0de7-1199-4ea7-a026-8d3745403ebb
+## 4                    point 0d030993-0e4a-4b73-b9fd-33e87be3ab30
+## 5                    point 0dba13ec-b909-4054-891a-0bb8454b4c3c
+## 6                    point 20ce73b4-fdcb-498d-b032-04895a6624fe</code></pre>
+</div>
 </div>
 <div id="connect-to-database-and-append-sampling-features-table" class="section level1">
 <h1>Connect to database and append sampling features table</h1>
 <pre class="r"><code># list all database tables
-dbListTables(db)</code></pre>
-<pre><code>##  [1] &quot;actionby&quot;                     &quot;spatial_ref_sys&quot;             
-##  [3] &quot;actions&quot;                      &quot;topology&quot;                    
-##  [5] &quot;layer&quot;                        &quot;geocode_settings&quot;            
-##  [7] &quot;direction_lookup&quot;             &quot;affiliations&quot;                
-##  [9] &quot;secondary_unit_lookup&quot;        &quot;state_lookup&quot;                
-## [11] &quot;street_type_lookup&quot;           &quot;datasets&quot;                    
-## [13] &quot;place_lookup&quot;                 &quot;county_lookup&quot;               
-## [15] &quot;datasetsresults&quot;              &quot;countysub_lookup&quot;            
-## [17] &quot;zip_lookup_all&quot;               &quot;featureactions&quot;              
-## [19] &quot;zip_lookup_base&quot;              &quot;zip_lookup&quot;                  
-## [21] &quot;county&quot;                       &quot;methods&quot;                     
-## [23] &quot;state&quot;                        &quot;place&quot;                       
-## [25] &quot;organizations&quot;                &quot;zip_state&quot;                   
-## [27] &quot;zip_state_loc&quot;                &quot;people&quot;                      
-## [29] &quot;cousub&quot;                       &quot;edges&quot;                       
-## [31] &quot;processinglevels&quot;             &quot;relatedactions&quot;              
-## [33] &quot;addrfeat&quot;                     &quot;results&quot;                     
-## [35] &quot;faces&quot;                        &quot;samplingfeatures&quot;            
-## [37] &quot;featnames&quot;                    &quot;taxonomicclassifiers&quot;        
-## [39] &quot;addr&quot;                         &quot;units&quot;                       
-## [41] &quot;zcta5&quot;                        &quot;variables&quot;                   
-## [43] &quot;loader_platform&quot;              &quot;loader_variables&quot;            
-## [45] &quot;loader_lookuptables&quot;          &quot;tract&quot;                       
-## [47] &quot;tabblock&quot;                     &quot;bg&quot;                          
-## [49] &quot;pagc_gaz&quot;                     &quot;samplingfeatures&quot;            
-## [51] &quot;pagc_lex&quot;                     &quot;measurementresults&quot;          
-## [53] &quot;pagc_rules&quot;                   &quot;measurementresultvalues&quot;     
-## [55] &quot;odm2.samplingfeatures&quot;        &quot;ODM2.samplingfeatures&quot;       
-## [57] &quot;relatedfeatures&quot;              &quot;sites&quot;                       
-## [59] &quot;spatialoffsets&quot;               &quot;spatialreferences&quot;           
-## [61] &quot;specimens&quot;                    &quot;specimentaxonomicclassifiers&quot;
-## [63] &quot;categoricalresults&quot;           &quot;categoricalresultvalues&quot;</code></pre>
-<pre class="r"><code># list columns in sampling features table
+# dbListTables(db)
+# list columns in sampling features table
 dbListFields(db, c(&quot;odm2&quot;, &quot;samplingfeatures&quot;))</code></pre>
 <pre><code>##  [1] &quot;samplingfeatureid&quot;          &quot;samplingfeatureuuid&quot;       
 ##  [3] &quot;samplingfeaturetypecv&quot;      &quot;samplingfeaturecode&quot;       
@@ -313,278 +321,201 @@ dbListFields(db, c(&quot;odm2&quot;, &quot;samplingfeatures&quot;))</code></pre>
 ##  [9] &quot;featuregeometrywkt&quot;         &quot;elevation_m&quot;               
 ## [11] &quot;elevationdatumcv&quot;</code></pre>
 <pre class="r"><code># all sampling features
-dbGetQuery(db, &quot;SELECT * FROM odm2.samplingfeatures&quot;)</code></pre>
+# dbGetQuery(db, &quot;SELECT * FROM odm2.samplingfeatures&quot;)
+# current sites 
+sites &lt;- dbGetQuery(db, &quot;SELECT * FROM odm2.samplingfeatures WHERE samplingfeaturetypecv = 'site'&quot;)</code></pre>
 <pre><code>## Warning in postgresqlExecStatement(conn, statement, ...): RS-DBI driver
 ## warning: (unrecognized PostgreSQL field type uuid (id:2950) in column 1)</code></pre>
 <pre><code>## Warning in postgresqlExecStatement(conn, statement, ...): RS-DBI driver
-## warning: (unrecognized PostgreSQL field type geometry (id:114457131) in
-## column 7)</code></pre>
-<pre><code>##    samplingfeatureid                  samplingfeatureuuid
-## 1                 44 72b7ffaa-7cc0-11e7-862e-001dd8b71c2d
-## 2                 45 7af4abe6-731f-4d25-a4c0-f9cadd3f5136
-## 3                 46 9858987f-a9eb-4fe5-8580-b213213203b4
-## 4                 47 a08c5e31-76a2-4283-8a2c-66ad2f18c70a
-## 5                 48 d7302bd2-ed03-4ed3-b477-ddb00044d318
-## 6                 49 f4326afb-cd31-4e71-9dbf-b995d6b2f857
-## 7                 50 8b1c69fe-507c-45a7-a8f5-8b2bf57cccce
-## 8                 51 cb08dc12-2ecc-41cd-ad06-2b2c82687345
-## 9                 52 50c49681-daca-4e9f-969e-d483389fded2
-## 10                53 59ea2511-5dc9-4d24-900d-d74ade076620
-## 11                54 0453914c-2a88-4408-a5cc-626731ac1aaa
-## 12                55 6713dd12-a768-4bc3-a375-ff61dded5e19
-## 13                56 10f41356-ee3d-4d68-ad0c-501efafd2c88
-## 14                57 81241f2b-d5d5-47ff-a2c6-10c10ab5948a
-## 15                58 c69f30ee-fa06-42de-a47f-509abe967901
-## 16                59 fcee9377-bcff-4f15-9e84-6222a47f25b1
-## 17                60 b01a035b-045d-40f3-896c-e7819bd92e3b
-## 18                61 012c4482-5467-450d-9911-c39f9c3d9330
-## 19                62 cc7092d1-bb85-4291-97b1-65b76d1e8c4b
-## 20                63 0044bd4c-20ab-4c86-b333-d3676afefebe
-## 21                64 132c3af6-8bb0-4169-89ca-1eeb2123620b
-## 22                65 50eaab12-6ddf-44ee-b039-427c0e83d222
-## 23                66 0dafb39a-b2ce-45a1-951a-8b68980739b2
-## 24                69 63ce1897-d8aa-4bf3-a09e-46b4f734b737
-## 25                70 43ed12be-ec35-4474-b0f9-5e4e569c9693
-## 26                71 4ee504c0-1db6-4acc-8abd-3e5739a3434e
-## 27                72 66649d52-c8b9-4c42-9dc4-1dbdd72e2c18
-## 28                73 f1414a30-e041-464f-9e2e-44ee636f76b8
-## 29                74 f8763e72-fe1b-4474-8632-90e89f251654
-## 30                75 beb53055-1c83-4e93-9942-3132316fc2fb
-## 31                76 6d7b928f-e55e-4efa-b67e-4f81eac174af
-## 32                77 42d9595b-378c-43f1-b9e7-e128e1336572
-## 33                67 115d53b2-bb6e-48ca-88c4-f9aee7a8ffa5
-## 34                68 8791257c-2b63-4926-abb7-9e725db9d3c9
-## 35                80 52ea5d58-81f7-11e7-8fad-001dd8b71c2d
-## 36                84 4dbe71d0-8c23-11e7-9774-001dd8b71c2d
-##    samplingfeaturetypecv samplingfeaturecode     samplingfeaturename
-## 1                   site                  QB      Quintessential Bay
-## 2                   site                  DF           DragonFly Bay
-## 3                   site                  SB           Something Bay
-## 4                   site                  FE           Farm Edge Bay
-## 5                   site                  AB                Anns Bay
-## 6                   site                  JD                 JR07 w3
-## 7                   site                  JA                 JR07 w1
-## 8                   site                  JC                 JR07 w3
-## 9                   site                  JE                 JR07 w5
-## 10                  site                  NB               Nates Bay
-## 11                  site                  GB              Grassy Bay
-## 12                  site                  BB            Bubbly Bay\n
-## 13                  site                  FR           Flux Restored
-## 14                  site                  GA         Grassy Road Bay
-## 15                  site                  FN            Flux Natural
-## 16                  site                  JB                 JR07 w2
-## 17                  site                  JU           Juliannas bay
-## 18                  site                  DB                Dank Bay
-## 19                  site                  TA                  Tiger1
-## 20                  site                  TB                  Tiger2
-## 21                  site                  TC                  Tiger3
-## 22                  site                  TD                  Tiger4
-## 23                  site                  TE                  Tiger5
-## 24                  site                  GN                Greg Nat
-## 25                  site                  GR           Greg Restored
-## 26                  site                  ND           North Dogbone
-## 27                  site                  JL                JL100 w1
-## 28                  site                  TN                Tiny Bay
-## 29                  site                  AK                 JL25 w1
-## 30                  site                  TM                 JL25 w2
-## 31                  site                  DK                Dark Bay
-## 32                  site                  SD Sad shallow carcass bay
-## 33                  site                  TF                  Tiger6
-## 34                  site                  TG                  Tiger7
-## 35                  site                  NS       Not something bay
-## 36              specimen              KH 001               KH 001 QB
-##    samplingfeaturedescription samplingfeaturegeotypecv featuregeometry
-## 1                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 2                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 3                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 4                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 5                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 6                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 7                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 8                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 9                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 10                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 11                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 12                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 13                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 14                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 15                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 16                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 17                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 18                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 19                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 20                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 21                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 22                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 23                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 24                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 25                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 26                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 27                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 28                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 29                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 30                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 31                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 32                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 33                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 34                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 35                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 36                       &lt;NA&gt;                     &lt;NA&gt;            &lt;NA&gt;
-##                                  featuregeometrywkt elevation_m
-## 1  POINT (-75.8346203678169815 39.0545496395090623)          NA
-## 2  POINT (-75.8351572422561446 39.0540147540243723)          NA
-## 3  POINT (-75.8338057385991391 39.0529610047107170)          NA
-## 4  POINT (-75.8251534635785305 39.0610164536649620)          NA
-## 5  POINT (-75.8272403109557729 39.0655269286567872)          NA
-## 6  POINT (-75.8247183511833498 39.0655916539153267)          NA
-## 7  POINT (-75.8260044107612714 39.0651425217264432)          NA
-## 8  POINT (-75.8250409956513209 39.0649907893207029)          NA
-## 9  POINT (-75.8236535326535375 39.0649189558067320)          NA
-## 10 POINT (-75.8245344732483204 39.0638593127024194)          NA
-## 11 POINT (-75.8195225345786952 39.0659853597133591)          NA
-## 12 POINT (-75.7519831091429694 39.0580585450542515)          NA
-## 13 POINT (-75.7533472116064388 39.0546846527849496)          NA
-## 14 POINT (-75.8168634513482687 39.0661712808031680)          NA
-## 15 POINT (-75.7532890384114097 39.0574336573162171)          NA
-## 16 POINT (-75.8253623708957889 39.0644228037336205)          NA
-## 17 POINT (-75.8183809595869178 39.0666532863627367)          NA
-## 18 POINT (-75.7575787261327775 39.0585543487713025)          NA
-## 19 POINT (-75.7563725288111556 39.0588005653679318)          NA
-## 20 POINT (-75.7558353501734700 39.0581328366076335)          NA
-## 21 POINT (-75.7550332704121558 39.0576808834890770)          NA
-## 22 POINT (-75.7548990718667312 39.0569526894048522)          NA
-## 23 POINT (-75.7567801700786845 39.0594531822337601)          NA
-## 24 POINT (-75.7484948318739555 39.0551037926009670)          NA
-## 25 POINT (-75.7487351532038389 39.0539694444444407)          NA
-## 26 POINT (-75.7466173956986069 39.0542279514155624)          NA
-## 27 POINT (-75.7477887732252100 39.0553230277279013)          NA
-## 28 POINT (-75.7472358503672325 39.0533761381052784)          NA
-## 29 POINT (-75.7463282781836824 39.0533608600031030)          NA
-## 30 POINT (-75.7455792056816506 39.0533485024618230)          NA
-## 31 POINT (-75.7445243249029687 39.0532931096852423)          NA
-## 32 POINT (-75.7438344696633976 39.0537042091321567)          NA
-## 33 POINT (-75.7567056439953319 39.0599771106761295)          NA
-## 34 POINT (-75.7564801873020741 39.0604061761795833)          NA
-## 35 POINT (-75.8343576143462457 39.0533686579482122)          NA
-## 36                                             &lt;NA&gt;          NA
-##    elevationdatumcv
-## 1              &lt;NA&gt;
-## 2              &lt;NA&gt;
-## 3              &lt;NA&gt;
-## 4              &lt;NA&gt;
-## 5              &lt;NA&gt;
-## 6              &lt;NA&gt;
-## 7              &lt;NA&gt;
-## 8              &lt;NA&gt;
-## 9              &lt;NA&gt;
-## 10             &lt;NA&gt;
-## 11             &lt;NA&gt;
-## 12             &lt;NA&gt;
-## 13             &lt;NA&gt;
-## 14             &lt;NA&gt;
-## 15             &lt;NA&gt;
-## 16             &lt;NA&gt;
-## 17             &lt;NA&gt;
-## 18             &lt;NA&gt;
-## 19             &lt;NA&gt;
-## 20             &lt;NA&gt;
-## 21             &lt;NA&gt;
-## 22             &lt;NA&gt;
-## 23             &lt;NA&gt;
-## 24             &lt;NA&gt;
-## 25             &lt;NA&gt;
-## 26             &lt;NA&gt;
-## 27             &lt;NA&gt;
-## 28             &lt;NA&gt;
-## 29             &lt;NA&gt;
-## 30             &lt;NA&gt;
-## 31             &lt;NA&gt;
-## 32             &lt;NA&gt;
-## 33             &lt;NA&gt;
-## 34             &lt;NA&gt;
-## 35             &lt;NA&gt;
-## 36             &lt;NA&gt;</code></pre>
-<pre class="r"><code># current sites 
-sites &lt;- dbGetQuery(db, &quot;SELECT * FROM odm2.samplingfeatures WHERE samplingfeaturetypecv = 'site'&quot;)</code></pre>
-<pre><code>## Warning in postgresqlExecStatement(conn, statement, ...): RS-DBI driver
-## warning: (unrecognized PostgreSQL field type uuid (id:2950) in column 1)
-
-## Warning in postgresqlExecStatement(conn, statement, ...): RS-DBI driver
 ## warning: (unrecognized PostgreSQL field type geometry (id:114457131) in
 ## column 7)</code></pre>
 <pre class="r"><code>sites</code></pre>
 <pre><code>##    samplingfeatureid                  samplingfeatureuuid
-## 1                 44 72b7ffaa-7cc0-11e7-862e-001dd8b71c2d
-## 2                 45 7af4abe6-731f-4d25-a4c0-f9cadd3f5136
-## 3                 46 9858987f-a9eb-4fe5-8580-b213213203b4
-## 4                 47 a08c5e31-76a2-4283-8a2c-66ad2f18c70a
-## 5                 48 d7302bd2-ed03-4ed3-b477-ddb00044d318
-## 6                 49 f4326afb-cd31-4e71-9dbf-b995d6b2f857
-## 7                 50 8b1c69fe-507c-45a7-a8f5-8b2bf57cccce
-## 8                 51 cb08dc12-2ecc-41cd-ad06-2b2c82687345
-## 9                 52 50c49681-daca-4e9f-969e-d483389fded2
-## 10                53 59ea2511-5dc9-4d24-900d-d74ade076620
-## 11                54 0453914c-2a88-4408-a5cc-626731ac1aaa
-## 12                55 6713dd12-a768-4bc3-a375-ff61dded5e19
-## 13                56 10f41356-ee3d-4d68-ad0c-501efafd2c88
-## 14                57 81241f2b-d5d5-47ff-a2c6-10c10ab5948a
-## 15                58 c69f30ee-fa06-42de-a47f-509abe967901
-## 16                59 fcee9377-bcff-4f15-9e84-6222a47f25b1
-## 17                60 b01a035b-045d-40f3-896c-e7819bd92e3b
-## 18                61 012c4482-5467-450d-9911-c39f9c3d9330
-## 19                62 cc7092d1-bb85-4291-97b1-65b76d1e8c4b
-## 20                63 0044bd4c-20ab-4c86-b333-d3676afefebe
-## 21                64 132c3af6-8bb0-4169-89ca-1eeb2123620b
-## 22                65 50eaab12-6ddf-44ee-b039-427c0e83d222
-## 23                66 0dafb39a-b2ce-45a1-951a-8b68980739b2
-## 24                69 63ce1897-d8aa-4bf3-a09e-46b4f734b737
-## 25                70 43ed12be-ec35-4474-b0f9-5e4e569c9693
-## 26                71 4ee504c0-1db6-4acc-8abd-3e5739a3434e
-## 27                72 66649d52-c8b9-4c42-9dc4-1dbdd72e2c18
-## 28                73 f1414a30-e041-464f-9e2e-44ee636f76b8
-## 29                74 f8763e72-fe1b-4474-8632-90e89f251654
-## 30                75 beb53055-1c83-4e93-9942-3132316fc2fb
-## 31                76 6d7b928f-e55e-4efa-b67e-4f81eac174af
-## 32                77 42d9595b-378c-43f1-b9e7-e128e1336572
-## 33                67 115d53b2-bb6e-48ca-88c4-f9aee7a8ffa5
-## 34                68 8791257c-2b63-4926-abb7-9e725db9d3c9
-## 35                80 52ea5d58-81f7-11e7-8fad-001dd8b71c2d
-##    samplingfeaturetypecv samplingfeaturecode     samplingfeaturename
-## 1                   site                  QB      Quintessential Bay
-## 2                   site                  DF           DragonFly Bay
-## 3                   site                  SB           Something Bay
-## 4                   site                  FE           Farm Edge Bay
-## 5                   site                  AB                Anns Bay
-## 6                   site                  JD                 JR07 w3
-## 7                   site                  JA                 JR07 w1
-## 8                   site                  JC                 JR07 w3
-## 9                   site                  JE                 JR07 w5
-## 10                  site                  NB               Nates Bay
-## 11                  site                  GB              Grassy Bay
-## 12                  site                  BB            Bubbly Bay\n
-## 13                  site                  FR           Flux Restored
-## 14                  site                  GA         Grassy Road Bay
-## 15                  site                  FN            Flux Natural
-## 16                  site                  JB                 JR07 w2
-## 17                  site                  JU           Juliannas bay
-## 18                  site                  DB                Dank Bay
-## 19                  site                  TA                  Tiger1
-## 20                  site                  TB                  Tiger2
-## 21                  site                  TC                  Tiger3
-## 22                  site                  TD                  Tiger4
-## 23                  site                  TE                  Tiger5
-## 24                  site                  GN                Greg Nat
-## 25                  site                  GR           Greg Restored
-## 26                  site                  ND           North Dogbone
-## 27                  site                  JL                JL100 w1
-## 28                  site                  TN                Tiny Bay
-## 29                  site                  AK                 JL25 w1
-## 30                  site                  TM                 JL25 w2
-## 31                  site                  DK                Dark Bay
-## 32                  site                  SD Sad shallow carcass bay
-## 33                  site                  TF                  Tiger6
-## 34                  site                  TG                  Tiger7
-## 35                  site                  NS       Not something bay
+## 1                 85 c493104e-ae0c-11e7-bbea-001dd8b71c2d
+## 2                 86 56463c7e-bc63-4d2a-96b8-bf5f6edf8a85
+## 3                 87 8547c597-2531-4c79-9f05-b43ca905beaa
+## 4                 88 68268927-09d0-4f19-a77c-a695e10c7f7f
+## 5                 89 b7782219-1a9c-4de0-bc05-e3b87957fe82
+## 6                 90 2e4d3e13-db4c-4a7d-8924-be53231b34ff
+## 7                 91 c3d73cbb-dfbc-49fd-801a-0d3faef0391a
+## 8                 92 65f3128f-ff71-483e-afd7-534f94a52e3d
+## 9                 93 1dd76d37-107a-4c10-be60-ec0083270274
+## 10                94 cf4b8fa0-699f-47f3-8df6-1b4f1839499f
+## 11                95 73bde27d-063f-4b80-a444-d12babb9253f
+## 12                96 f6f88a2b-c6ee-4538-9c33-50f824989893
+## 13                97 94e2d0df-2c51-4e32-9d0f-a719de962422
+## 14                98 ee783cdd-dc3f-4b8d-8bb7-7662a8472b33
+## 15                99 5544ccc0-fe06-46b8-ba35-ba7599af8031
+## 16               100 48222992-81b2-4736-859a-0b9ebfd7de09
+## 17               101 8cd1acb8-f7f5-4eb2-b0a5-cd139f670ac6
+## 18               102 c6957606-8457-42f5-89da-837c90bfb377
+## 19               103 15bfbf88-c731-4dbb-bc51-0ba3e87a170a
+## 20               104 581305ac-e08e-41e0-8dbb-045abac1cd50
+## 21               105 34372404-5ba5-4efa-a915-6614cd1dc267
+## 22               106 e15035ce-1cbb-44ad-8a44-1aa602942977
+## 23               107 3d804a62-8bc2-453f-91be-6d454a44452f
+## 24               108 9c893a42-1776-4685-8540-7378affe92db
+## 25                44 72b7ffaa-7cc0-11e7-862e-001dd8b71c2d
+## 26                45 7af4abe6-731f-4d25-a4c0-f9cadd3f5136
+## 27                46 9858987f-a9eb-4fe5-8580-b213213203b4
+## 28                47 a08c5e31-76a2-4283-8a2c-66ad2f18c70a
+## 29                48 d7302bd2-ed03-4ed3-b477-ddb00044d318
+## 30                49 f4326afb-cd31-4e71-9dbf-b995d6b2f857
+## 31                50 8b1c69fe-507c-45a7-a8f5-8b2bf57cccce
+## 32                51 cb08dc12-2ecc-41cd-ad06-2b2c82687345
+## 33                52 50c49681-daca-4e9f-969e-d483389fded2
+## 34                53 59ea2511-5dc9-4d24-900d-d74ade076620
+## 35                54 0453914c-2a88-4408-a5cc-626731ac1aaa
+## 36                55 6713dd12-a768-4bc3-a375-ff61dded5e19
+## 37                56 10f41356-ee3d-4d68-ad0c-501efafd2c88
+## 38                57 81241f2b-d5d5-47ff-a2c6-10c10ab5948a
+## 39                58 c69f30ee-fa06-42de-a47f-509abe967901
+## 40                59 fcee9377-bcff-4f15-9e84-6222a47f25b1
+## 41                60 b01a035b-045d-40f3-896c-e7819bd92e3b
+## 42                61 012c4482-5467-450d-9911-c39f9c3d9330
+## 43                62 cc7092d1-bb85-4291-97b1-65b76d1e8c4b
+## 44                63 0044bd4c-20ab-4c86-b333-d3676afefebe
+## 45                64 132c3af6-8bb0-4169-89ca-1eeb2123620b
+## 46                65 50eaab12-6ddf-44ee-b039-427c0e83d222
+## 47                66 0dafb39a-b2ce-45a1-951a-8b68980739b2
+## 48                69 63ce1897-d8aa-4bf3-a09e-46b4f734b737
+## 49                70 43ed12be-ec35-4474-b0f9-5e4e569c9693
+## 50                71 4ee504c0-1db6-4acc-8abd-3e5739a3434e
+## 51                72 66649d52-c8b9-4c42-9dc4-1dbdd72e2c18
+## 52                73 f1414a30-e041-464f-9e2e-44ee636f76b8
+## 53                74 f8763e72-fe1b-4474-8632-90e89f251654
+## 54                75 beb53055-1c83-4e93-9942-3132316fc2fb
+## 55                76 6d7b928f-e55e-4efa-b67e-4f81eac174af
+## 56                77 42d9595b-378c-43f1-b9e7-e128e1336572
+## 57                67 115d53b2-bb6e-48ca-88c4-f9aee7a8ffa5
+## 58                68 8791257c-2b63-4926-abb7-9e725db9d3c9
+## 59               109 57cdbc77-66fc-4542-83f7-baac4b514cf2
+## 60               110 ac47ea59-cabe-4106-a42b-cdd99890a26c
+## 61                80 52ea5d58-81f7-11e7-8fad-001dd8b71c2d
+##    samplingfeaturetypecv samplingfeaturecode
+## 1                   site             QB SC A
+## 2                   site             QB SC E
+## 3                   site             QB SC C
+## 4                   site             QB SC B
+## 5                   site             QB SC D
+## 6                   site             JA SC A
+## 7                   site             JA SC B
+## 8                   site             JA SC C
+## 9                   site             JB SC A
+## 10                  site             JB SC B
+## 11                  site             JB SC C
+## 12                  site             DB SC A
+## 13                  site             DB SC B
+## 14                  site             DB SC C
+## 15                  site             TB SC A
+## 16                  site             TB SC B
+## 17                  site             TB SC C
+## 18                  site             BB SC A
+## 19                  site             ND SC A
+## 20                  site             ND SC B
+## 21                  site             ND SC C
+## 22                  site             DK SC A
+## 23                  site             DK SC E
+## 24                  site             DK SC C
+## 25                  site                  QB
+## 26                  site                  DF
+## 27                  site                  SB
+## 28                  site                  FE
+## 29                  site                  AB
+## 30                  site                  JD
+## 31                  site                  JA
+## 32                  site                  JC
+## 33                  site                  JE
+## 34                  site                  NB
+## 35                  site                  GB
+## 36                  site                  BB
+## 37                  site                  FR
+## 38                  site                  GA
+## 39                  site                  FN
+## 40                  site                  JB
+## 41                  site                  JU
+## 42                  site                  DB
+## 43                  site                  TA
+## 44                  site                  TB
+## 45                  site                  TC
+## 46                  site                  TD
+## 47                  site                  TE
+## 48                  site                  GN
+## 49                  site                  GR
+## 50                  site                  ND
+## 51                  site                  JL
+## 52                  site                  TN
+## 53                  site                  AK
+## 54                  site                  TM
+## 55                  site                  DK
+## 56                  site                  SD
+## 57                  site                  TF
+## 58                  site                  TG
+## 59                  site             DK SC D
+## 60                  site             DK SC B
+## 61                  site                  NS
+##                                                                    samplingfeaturename
+## 1         most interior of 5 soil chambers on transect 5m apart (approximate location)
+## 2           most upland of 5 soil chambers on transect 5m apart (approximate location)
+## 3                middle of 5 soil chambers on transect 5m apart (approximate location)
+## 4     2nd most interior of 5 soil chambers on transect 5m apart (approximate location)
+## 5       2nd most upland of 5 soil chambers on transect 5m apart (approximate location)
+## 6      most interior of 3 soil chambers along transect 5m apart (approximate location)
+## 7             center of 3 soil chambers along transect 5m apart (approximate location)
+## 8        most upland of 3 soil chambers along transect 5m apart (approximate location)
+## 9      most interior of 3 soil chambers along transect 5m apart (approximate location)
+## 10            middle of 3 soil chambers along transect 5m apart (approximate location)
+## 11       most upland of 3 soil chambers along transect 5m apart (approximate location)
+## 12     most interior of 3 soil chambers along transect 5m apart (approximate location)
+## 13            middle of 3 soil chambers along transect 5m apart (approximate location)
+## 14       most upland of 3 soil chambers along transect 5m apart (approximate location)
+## 15     most interior of 3 soil chambers along transect 5m apart (approximate location)
+## 16            middle of 3 soil chambers along transect 5m apart (approximate location)
+## 17       most upland of 3 soil chambers along transect 5m apart (approximate location)
+## 18                                                 soil chamber (approximate location)
+## 19   most interior of 3 soil chambers along transect 2.5m apart (approximate location)
+## 20          middle of 3 soil chambers along transect 2.5m apart (approximate location)
+## 21     most upland of 3 soil chambers along transect 2.5m apart (approximate location)
+## 22     most interior of 5 soil chambers along transect 5m apart (approximate location)
+## 23       most upland of 5 soil chambers along transect 5m apart (approximate location)
+## 24            middle of 5 soil chambers along transect 5m apart (approximate location)
+## 25                                                                  Quintessential Bay
+## 26                                                                       DragonFly Bay
+## 27                                                                       Something Bay
+## 28                                                                       Farm Edge Bay
+## 29                                                                            Anns Bay
+## 30                                                                             JR07 w3
+## 31                                                                             JR07 w1
+## 32                                                                             JR07 w3
+## 33                                                                             JR07 w5
+## 34                                                                           Nates Bay
+## 35                                                                          Grassy Bay
+## 36                                                                        Bubbly Bay\n
+## 37                                                                       Flux Restored
+## 38                                                                     Grassy Road Bay
+## 39                                                                        Flux Natural
+## 40                                                                             JR07 w2
+## 41                                                                       Juliannas bay
+## 42                                                                            Dank Bay
+## 43                                                                              Tiger1
+## 44                                                                              Tiger2
+## 45                                                                              Tiger3
+## 46                                                                              Tiger4
+## 47                                                                              Tiger5
+## 48                                                                            Greg Nat
+## 49                                                                       Greg Restored
+## 50                                                                       North Dogbone
+## 51                                                                            JL100 w1
+## 52                                                                            Tiny Bay
+## 53                                                                             JL25 w1
+## 54                                                                             JL25 w2
+## 55                                                                            Dark Bay
+## 56                                                             Sad shallow carcass bay
+## 57                                                                              Tiger6
+## 58                                                                              Tiger7
+## 59   2nd most upland of 5 soil chambers along transect 5m apart (approximate location)
+## 60 2nd most interior of 5 soil chambers along transect 5m apart (approximate location)
+## 61                                                                   Not something bay
 ##    samplingfeaturedescription samplingfeaturegeotypecv featuregeometry
 ## 1                        &lt;NA&gt;                    point            &lt;NA&gt;
 ## 2                        &lt;NA&gt;                    point            &lt;NA&gt;
@@ -621,247 +552,94 @@ sites &lt;- dbGetQuery(db, &quot;SELECT * FROM odm2.samplingfeatures WHERE sampl
 ## 33                       &lt;NA&gt;                    point            &lt;NA&gt;
 ## 34                       &lt;NA&gt;                    point            &lt;NA&gt;
 ## 35                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 36                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 37                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 38                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 39                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 40                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 41                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 42                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 43                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 44                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 45                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 46                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 47                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 48                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 49                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 50                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 51                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 52                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 53                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 54                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 55                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 56                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 57                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 58                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 59                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 60                       &lt;NA&gt;                    point            &lt;NA&gt;
+## 61                       &lt;NA&gt;                    point            &lt;NA&gt;
 ##                                  featuregeometrywkt elevation_m
-## 1  POINT (-75.8346203678169815 39.0545496395090623)          NA
-## 2  POINT (-75.8351572422561446 39.0540147540243723)          NA
-## 3  POINT (-75.8338057385991391 39.0529610047107170)          NA
-## 4  POINT (-75.8251534635785305 39.0610164536649620)          NA
-## 5  POINT (-75.8272403109557729 39.0655269286567872)          NA
-## 6  POINT (-75.8247183511833498 39.0655916539153267)          NA
-## 7  POINT (-75.8260044107612714 39.0651425217264432)          NA
-## 8  POINT (-75.8250409956513209 39.0649907893207029)          NA
-## 9  POINT (-75.8236535326535375 39.0649189558067320)          NA
-## 10 POINT (-75.8245344732483204 39.0638593127024194)          NA
-## 11 POINT (-75.8195225345786952 39.0659853597133591)          NA
-## 12 POINT (-75.7519831091429694 39.0580585450542515)          NA
-## 13 POINT (-75.7533472116064388 39.0546846527849496)          NA
-## 14 POINT (-75.8168634513482687 39.0661712808031680)          NA
-## 15 POINT (-75.7532890384114097 39.0574336573162171)          NA
-## 16 POINT (-75.8253623708957889 39.0644228037336205)          NA
-## 17 POINT (-75.8183809595869178 39.0666532863627367)          NA
-## 18 POINT (-75.7575787261327775 39.0585543487713025)          NA
-## 19 POINT (-75.7563725288111556 39.0588005653679318)          NA
-## 20 POINT (-75.7558353501734700 39.0581328366076335)          NA
-## 21 POINT (-75.7550332704121558 39.0576808834890770)          NA
-## 22 POINT (-75.7548990718667312 39.0569526894048522)          NA
-## 23 POINT (-75.7567801700786845 39.0594531822337601)          NA
-## 24 POINT (-75.7484948318739555 39.0551037926009670)          NA
-## 25 POINT (-75.7487351532038389 39.0539694444444407)          NA
-## 26 POINT (-75.7466173956986069 39.0542279514155624)          NA
-## 27 POINT (-75.7477887732252100 39.0553230277279013)          NA
-## 28 POINT (-75.7472358503672325 39.0533761381052784)          NA
-## 29 POINT (-75.7463282781836824 39.0533608600031030)          NA
-## 30 POINT (-75.7455792056816506 39.0533485024618230)          NA
-## 31 POINT (-75.7445243249029687 39.0532931096852423)          NA
-## 32 POINT (-75.7438344696633976 39.0537042091321567)          NA
-## 33 POINT (-75.7567056439953319 39.0599771106761295)          NA
-## 34 POINT (-75.7564801873020741 39.0604061761795833)          NA
-## 35 POINT (-75.8343576143462457 39.0533686579482122)          NA
-##    elevationdatumcv
-## 1              &lt;NA&gt;
-## 2              &lt;NA&gt;
-## 3              &lt;NA&gt;
-## 4              &lt;NA&gt;
-## 5              &lt;NA&gt;
-## 6              &lt;NA&gt;
-## 7              &lt;NA&gt;
-## 8              &lt;NA&gt;
-## 9              &lt;NA&gt;
-## 10             &lt;NA&gt;
-## 11             &lt;NA&gt;
-## 12             &lt;NA&gt;
-## 13             &lt;NA&gt;
-## 14             &lt;NA&gt;
-## 15             &lt;NA&gt;
-## 16             &lt;NA&gt;
-## 17             &lt;NA&gt;
-## 18             &lt;NA&gt;
-## 19             &lt;NA&gt;
-## 20             &lt;NA&gt;
-## 21             &lt;NA&gt;
-## 22             &lt;NA&gt;
-## 23             &lt;NA&gt;
-## 24             &lt;NA&gt;
-## 25             &lt;NA&gt;
-## 26             &lt;NA&gt;
-## 27             &lt;NA&gt;
-## 28             &lt;NA&gt;
-## 29             &lt;NA&gt;
-## 30             &lt;NA&gt;
-## 31             &lt;NA&gt;
-## 32             &lt;NA&gt;
-## 33             &lt;NA&gt;
-## 34             &lt;NA&gt;
-## 35             &lt;NA&gt;</code></pre>
-<p>make data frame to append to sampling features table</p>
-<p><a href="http://odm2.github.io/ODM2/schemas/ODM2_Current/tables/ODM2Core_SamplingFeatures.html" class="uri">http://odm2.github.io/ODM2/schemas/ODM2_Current/tables/ODM2Core_SamplingFeatures.html</a></p>
-<ul>
-<li>code is the short 2 letter name</li>
-<li>name is a longer informative name</li>
-<li>type is site for locations (compared to speciment for samples)</li>
-<li>FEATURE TYPE CV: <a href="http://vocabulary.odm2.org/samplingfeaturetype/" class="uri">http://vocabulary.odm2.org/samplingfeaturetype/</a></li>
-<li>for point data: convert geometry to a vector of well-known text (WKT) using writeWKT</li>
-</ul>
-<pre class="r"><code># dbWriteTable(db, c(&quot;odm2&quot;,&quot;samplingfeatures&quot;),
-#              new_samp_features, 
-#              overwrite = FALSE, 
-#              row.names = FALSE,
-#              append = TRUE)</code></pre>
-<p>See if they are there now</p>
-<pre class="r"><code>dbGetQuery(db, &quot;SELECT * FROM ODM2.samplingfeatures&quot;)</code></pre>
-<pre><code>## Warning in postgresqlExecStatement(conn, statement, ...): RS-DBI driver
-## warning: (unrecognized PostgreSQL field type uuid (id:2950) in column 1)</code></pre>
-<pre><code>## Warning in postgresqlExecStatement(conn, statement, ...): RS-DBI driver
-## warning: (unrecognized PostgreSQL field type geometry (id:114457131) in
-## column 7)</code></pre>
-<pre><code>##    samplingfeatureid                  samplingfeatureuuid
-## 1                 44 72b7ffaa-7cc0-11e7-862e-001dd8b71c2d
-## 2                 45 7af4abe6-731f-4d25-a4c0-f9cadd3f5136
-## 3                 46 9858987f-a9eb-4fe5-8580-b213213203b4
-## 4                 47 a08c5e31-76a2-4283-8a2c-66ad2f18c70a
-## 5                 48 d7302bd2-ed03-4ed3-b477-ddb00044d318
-## 6                 49 f4326afb-cd31-4e71-9dbf-b995d6b2f857
-## 7                 50 8b1c69fe-507c-45a7-a8f5-8b2bf57cccce
-## 8                 51 cb08dc12-2ecc-41cd-ad06-2b2c82687345
-## 9                 52 50c49681-daca-4e9f-969e-d483389fded2
-## 10                53 59ea2511-5dc9-4d24-900d-d74ade076620
-## 11                54 0453914c-2a88-4408-a5cc-626731ac1aaa
-## 12                55 6713dd12-a768-4bc3-a375-ff61dded5e19
-## 13                56 10f41356-ee3d-4d68-ad0c-501efafd2c88
-## 14                57 81241f2b-d5d5-47ff-a2c6-10c10ab5948a
-## 15                58 c69f30ee-fa06-42de-a47f-509abe967901
-## 16                59 fcee9377-bcff-4f15-9e84-6222a47f25b1
-## 17                60 b01a035b-045d-40f3-896c-e7819bd92e3b
-## 18                61 012c4482-5467-450d-9911-c39f9c3d9330
-## 19                62 cc7092d1-bb85-4291-97b1-65b76d1e8c4b
-## 20                63 0044bd4c-20ab-4c86-b333-d3676afefebe
-## 21                64 132c3af6-8bb0-4169-89ca-1eeb2123620b
-## 22                65 50eaab12-6ddf-44ee-b039-427c0e83d222
-## 23                66 0dafb39a-b2ce-45a1-951a-8b68980739b2
-## 24                69 63ce1897-d8aa-4bf3-a09e-46b4f734b737
-## 25                70 43ed12be-ec35-4474-b0f9-5e4e569c9693
-## 26                71 4ee504c0-1db6-4acc-8abd-3e5739a3434e
-## 27                72 66649d52-c8b9-4c42-9dc4-1dbdd72e2c18
-## 28                73 f1414a30-e041-464f-9e2e-44ee636f76b8
-## 29                74 f8763e72-fe1b-4474-8632-90e89f251654
-## 30                75 beb53055-1c83-4e93-9942-3132316fc2fb
-## 31                76 6d7b928f-e55e-4efa-b67e-4f81eac174af
-## 32                77 42d9595b-378c-43f1-b9e7-e128e1336572
-## 33                67 115d53b2-bb6e-48ca-88c4-f9aee7a8ffa5
-## 34                68 8791257c-2b63-4926-abb7-9e725db9d3c9
-## 35                80 52ea5d58-81f7-11e7-8fad-001dd8b71c2d
-## 36                84 4dbe71d0-8c23-11e7-9774-001dd8b71c2d
-##    samplingfeaturetypecv samplingfeaturecode     samplingfeaturename
-## 1                   site                  QB      Quintessential Bay
-## 2                   site                  DF           DragonFly Bay
-## 3                   site                  SB           Something Bay
-## 4                   site                  FE           Farm Edge Bay
-## 5                   site                  AB                Anns Bay
-## 6                   site                  JD                 JR07 w3
-## 7                   site                  JA                 JR07 w1
-## 8                   site                  JC                 JR07 w3
-## 9                   site                  JE                 JR07 w5
-## 10                  site                  NB               Nates Bay
-## 11                  site                  GB              Grassy Bay
-## 12                  site                  BB            Bubbly Bay\n
-## 13                  site                  FR           Flux Restored
-## 14                  site                  GA         Grassy Road Bay
-## 15                  site                  FN            Flux Natural
-## 16                  site                  JB                 JR07 w2
-## 17                  site                  JU           Juliannas bay
-## 18                  site                  DB                Dank Bay
-## 19                  site                  TA                  Tiger1
-## 20                  site                  TB                  Tiger2
-## 21                  site                  TC                  Tiger3
-## 22                  site                  TD                  Tiger4
-## 23                  site                  TE                  Tiger5
-## 24                  site                  GN                Greg Nat
-## 25                  site                  GR           Greg Restored
-## 26                  site                  ND           North Dogbone
-## 27                  site                  JL                JL100 w1
-## 28                  site                  TN                Tiny Bay
-## 29                  site                  AK                 JL25 w1
-## 30                  site                  TM                 JL25 w2
-## 31                  site                  DK                Dark Bay
-## 32                  site                  SD Sad shallow carcass bay
-## 33                  site                  TF                  Tiger6
-## 34                  site                  TG                  Tiger7
-## 35                  site                  NS       Not something bay
-## 36              specimen              KH 001               KH 001 QB
-##    samplingfeaturedescription samplingfeaturegeotypecv featuregeometry
-## 1                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 2                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 3                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 4                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 5                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 6                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 7                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 8                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 9                        &lt;NA&gt;                    point            &lt;NA&gt;
-## 10                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 11                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 12                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 13                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 14                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 15                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 16                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 17                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 18                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 19                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 20                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 21                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 22                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 23                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 24                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 25                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 26                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 27                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 28                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 29                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 30                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 31                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 32                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 33                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 34                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 35                       &lt;NA&gt;                    point            &lt;NA&gt;
-## 36                       &lt;NA&gt;                     &lt;NA&gt;            &lt;NA&gt;
-##                                  featuregeometrywkt elevation_m
-## 1  POINT (-75.8346203678169815 39.0545496395090623)          NA
-## 2  POINT (-75.8351572422561446 39.0540147540243723)          NA
-## 3  POINT (-75.8338057385991391 39.0529610047107170)          NA
-## 4  POINT (-75.8251534635785305 39.0610164536649620)          NA
-## 5  POINT (-75.8272403109557729 39.0655269286567872)          NA
-## 6  POINT (-75.8247183511833498 39.0655916539153267)          NA
-## 7  POINT (-75.8260044107612714 39.0651425217264432)          NA
-## 8  POINT (-75.8250409956513209 39.0649907893207029)          NA
-## 9  POINT (-75.8236535326535375 39.0649189558067320)          NA
-## 10 POINT (-75.8245344732483204 39.0638593127024194)          NA
-## 11 POINT (-75.8195225345786952 39.0659853597133591)          NA
-## 12 POINT (-75.7519831091429694 39.0580585450542515)          NA
-## 13 POINT (-75.7533472116064388 39.0546846527849496)          NA
-## 14 POINT (-75.8168634513482687 39.0661712808031680)          NA
-## 15 POINT (-75.7532890384114097 39.0574336573162171)          NA
-## 16 POINT (-75.8253623708957889 39.0644228037336205)          NA
-## 17 POINT (-75.8183809595869178 39.0666532863627367)          NA
-## 18 POINT (-75.7575787261327775 39.0585543487713025)          NA
-## 19 POINT (-75.7563725288111556 39.0588005653679318)          NA
-## 20 POINT (-75.7558353501734700 39.0581328366076335)          NA
-## 21 POINT (-75.7550332704121558 39.0576808834890770)          NA
-## 22 POINT (-75.7548990718667312 39.0569526894048522)          NA
-## 23 POINT (-75.7567801700786845 39.0594531822337601)          NA
-## 24 POINT (-75.7484948318739555 39.0551037926009670)          NA
-## 25 POINT (-75.7487351532038389 39.0539694444444407)          NA
-## 26 POINT (-75.7466173956986069 39.0542279514155624)          NA
-## 27 POINT (-75.7477887732252100 39.0553230277279013)          NA
-## 28 POINT (-75.7472358503672325 39.0533761381052784)          NA
-## 29 POINT (-75.7463282781836824 39.0533608600031030)          NA
-## 30 POINT (-75.7455792056816506 39.0533485024618230)          NA
-## 31 POINT (-75.7445243249029687 39.0532931096852423)          NA
-## 32 POINT (-75.7438344696633976 39.0537042091321567)          NA
-## 33 POINT (-75.7567056439953319 39.0599771106761295)          NA
-## 34 POINT (-75.7564801873020741 39.0604061761795833)          NA
-## 35 POINT (-75.8343576143462457 39.0533686579482122)          NA
-## 36                                             &lt;NA&gt;          NA
+## 1  POINT (-75.8345276189573383 39.0544974094512867)          NA
+## 2  POINT (-75.8343348231713748 39.0544029037487874)          NA
+## 3  POINT (-75.8344736499219891 39.0544580928631575)          NA
+## 4  POINT (-75.8345809369696013 39.0545292778680420)          NA
+## 5  POINT (-75.8343937912614052 39.0544290909816567)          NA
+## 6  POINT (-75.8258489541192660 39.0651438211572426)          NA
+## 7  POINT (-75.8257577914992567 39.0651264271237224)          NA
+## 8  POINT (-75.8256756185791119 39.0651040530023792)          NA
+## 9  POINT (-75.8252580658446504 39.0642207451372130)          NA
+## 10 POINT (-75.8252157474444886 39.0641757201476665)          NA
+## 11 POINT (-75.8251736331457380 39.0641383569311600)          NA
+## 12 POINT (-75.7576163040169916 39.0586885431952169)          NA
+## 13 POINT (-75.7576135276484735 39.0587573115057509)          NA
+## 14 POINT (-75.7576235870625965 39.0588299167309927)          NA
+## 15 POINT (-75.7560347807923620 39.0582496579809373)          NA
+## 16 POINT (-75.7560711932331969 39.0583029588279871)          NA
+## 17 POINT (-75.7561032805576957 39.0583550399533976)          NA
+## 18 POINT (-75.7519966002225686 39.0580144965493830)          NA
+## 19 POINT (-75.7468777935494160 39.0542263444662225)          NA
+## 20 POINT (-75.7469279203054953 39.0542145345456007)          NA
+## 21 POINT (-75.7469934224283037 39.0542051038871634)          NA
+## 22 POINT (-75.7446084161871198 39.0533035587228383)          NA
+## 23 POINT (-75.7449203041268220 39.0533080383096873)          NA
+## 24 POINT (-75.7447576057030432 39.0533040040809070)          NA
+## 25 POINT (-75.8346203678169815 39.0545496395090623)          NA
+## 26 POINT (-75.8351572422561446 39.0540147540243723)          NA
+## 27 POINT (-75.8338057385991391 39.0529610047107170)          NA
+## 28 POINT (-75.8251534635785305 39.0610164536649620)          NA
+## 29 POINT (-75.8272403109557729 39.0655269286567872)          NA
+## 30 POINT (-75.8247183511833498 39.0655916539153267)          NA
+## 31 POINT (-75.8260044107612714 39.0651425217264432)          NA
+## 32 POINT (-75.8250409956513209 39.0649907893207029)          NA
+## 33 POINT (-75.8236535326535375 39.0649189558067320)          NA
+## 34 POINT (-75.8245344732483204 39.0638593127024194)          NA
+## 35 POINT (-75.8195225345786952 39.0659853597133591)          NA
+## 36 POINT (-75.7519831091429694 39.0580585450542515)          NA
+## 37 POINT (-75.7533472116064388 39.0546846527849496)          NA
+## 38 POINT (-75.8168634513482687 39.0661712808031680)          NA
+## 39 POINT (-75.7532890384114097 39.0574336573162171)          NA
+## 40 POINT (-75.8253623708957889 39.0644228037336205)          NA
+## 41 POINT (-75.8183809595869178 39.0666532863627367)          NA
+## 42 POINT (-75.7575787261327775 39.0585543487713025)          NA
+## 43 POINT (-75.7563725288111556 39.0588005653679318)          NA
+## 44 POINT (-75.7558353501734700 39.0581328366076335)          NA
+## 45 POINT (-75.7550332704121558 39.0576808834890770)          NA
+## 46 POINT (-75.7548990718667312 39.0569526894048522)          NA
+## 47 POINT (-75.7567801700786845 39.0594531822337601)          NA
+## 48 POINT (-75.7484948318739555 39.0551037926009670)          NA
+## 49 POINT (-75.7487351532038389 39.0539694444444407)          NA
+## 50 POINT (-75.7466173956986069 39.0542279514155624)          NA
+## 51 POINT (-75.7477887732252100 39.0553230277279013)          NA
+## 52 POINT (-75.7472358503672325 39.0533761381052784)          NA
+## 53 POINT (-75.7463282781836824 39.0533608600031030)          NA
+## 54 POINT (-75.7455792056816506 39.0533485024618230)          NA
+## 55 POINT (-75.7445243249029687 39.0532931096852423)          NA
+## 56 POINT (-75.7438344696633976 39.0537042091321567)          NA
+## 57 POINT (-75.7567056439953319 39.0599771106761295)          NA
+## 58 POINT (-75.7564801873020741 39.0604061761795833)          NA
+## 59 POINT (-75.7448297839485889 39.0533072257193297)          NA
+## 60 POINT (-75.7446850696484546 39.0533007646469130)          NA
+## 61 POINT (-75.8343576143462457 39.0533686579482122)          NA
 ##    elevationdatumcv
 ## 1              &lt;NA&gt;
 ## 2              &lt;NA&gt;
@@ -898,7 +676,40 @@ sites &lt;- dbGetQuery(db, &quot;SELECT * FROM odm2.samplingfeatures WHERE sampl
 ## 33             &lt;NA&gt;
 ## 34             &lt;NA&gt;
 ## 35             &lt;NA&gt;
-## 36             &lt;NA&gt;</code></pre>
+## 36             &lt;NA&gt;
+## 37             &lt;NA&gt;
+## 38             &lt;NA&gt;
+## 39             &lt;NA&gt;
+## 40             &lt;NA&gt;
+## 41             &lt;NA&gt;
+## 42             &lt;NA&gt;
+## 43             &lt;NA&gt;
+## 44             &lt;NA&gt;
+## 45             &lt;NA&gt;
+## 46             &lt;NA&gt;
+## 47             &lt;NA&gt;
+## 48             &lt;NA&gt;
+## 49             &lt;NA&gt;
+## 50             &lt;NA&gt;
+## 51             &lt;NA&gt;
+## 52             &lt;NA&gt;
+## 53             &lt;NA&gt;
+## 54             &lt;NA&gt;
+## 55             &lt;NA&gt;
+## 56             &lt;NA&gt;
+## 57             &lt;NA&gt;
+## 58             &lt;NA&gt;
+## 59             &lt;NA&gt;
+## 60             &lt;NA&gt;
+## 61             &lt;NA&gt;</code></pre>
+<p>This is the code for updating the table. It is commented out and not evaluated for the purposes of this documentation.</p>
+<pre class="r"><code>dbWriteTable(db, c(&quot;odm2&quot;,&quot;samplingfeatures&quot;),
+             new_samp_features,
+             overwrite = FALSE,
+             row.names = FALSE,
+             append = TRUE)</code></pre>
+<p>See if they are there now</p>
+<pre class="r"><code># dbGetQuery(db, &quot;SELECT * FROM ODM2.samplingfeatures&quot;)</code></pre>
 <p>Don’t forget to disconnect at the end</p>
 <pre class="r"><code>dbDisconnect(db)</code></pre>
 <pre><code>## [1] TRUE</code></pre>
