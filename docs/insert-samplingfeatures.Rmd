@@ -1,0 +1,132 @@
+---
+title: "How to add new sampling sites to the choptank database"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+# Introduction 
+
+This document is a guide for adding or updating site locations to the Choptank database. The database uses the ODM2 framework schema and vocabulary. 
+
+__Sites__ are a type of *sampling feature* and are uniquely identified by a unique short code (e.g. a 2-letter code identifying each wetland) as well as a computer-generated universally unique ID (uuid). We can also include a longer name, description, and spatial information. 
+
+In general, the steps of this process are:
+
+1. Read in spatial data with site locations
+2. Add uuids and rename columns to match database table
+3. Convert the spatial information to well-known text (WKT)
+4. Append this data frame to the sampling features table in the database
+
+# Set up
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load the necessary libraries
+
+If the library is not installed on your computer, use `install.packages()`. 
+
+```{r, message=FALSE}
+library(rgdal) # spatial data types
+library(rgeos) # spatial 
+library(sf) # spatial
+library(uuid) # unique ids
+library(RPostgreSQL) # database
+```
+
+## Connect to the database
+
+To get familiar with the database, see the document on general database interactions
+
+```{r, include=FALSE}
+db <- dbConnect(PostgreSQL(), 
+                 host = "sesync-postgis01.research.sesync.org",
+                 dbname = "choptank", user = "palmergroup",
+                 password = password)
+```
+
+
+# Read in your data
+
+This example uses a `.kmz` file created from Google Earth. 
+
+```{r}
+path = "/nfs/palmer-group-data/Choptank/data"
+wetlands <- readOGR(file.path(path, "SamplingFeature_sites.kmz"))
+```
+
+# Match column names to database table
+
+```{r}
+new_samp_features <- data.frame("samplingfeaturecode" = wetlands$Name,
+                                "samplingfeaturename" = wetlands$description,
+                                "samplingfeaturetypecv" = "site",
+                                "featuregeometrywkt" = writeWKT(wetlands, byid = TRUE),
+                                "samplingfeaturegeotypecv" = "point")
+```
+
+generate uuids
+
+```{r}
+new_samp_features$samplingfeatureuuid <- sapply(1:nrow(new_samp_features), UUIDgenerate)
+```
+
+wetlands is a spatial polygons data frame
+
+dataframe contains Name and description from google earth file
+
+
+# Connect to database and append sampling features table
+
+```{r}
+
+# list all database tables
+dbListTables(db)
+# list columns in sampling features table
+dbListFields(db, c("odm2", "samplingfeatures"))
+# all sampling features
+dbGetQuery(db, "SELECT * FROM odm2.samplingfeatures")
+# current sites 
+sites <- dbGetQuery(db, "SELECT * FROM odm2.samplingfeatures WHERE samplingfeaturetypecv = 'site'")
+```
+
+```{r}
+sites
+```
+
+
+make data frame to append to sampling features table
+
+http://odm2.github.io/ODM2/schemas/ODM2_Current/tables/ODM2Core_SamplingFeatures.html
+
+* code is the short 2 letter name
+* name is a longer informative name
+* type is site for locations (compared to speciment for samples)
+* FEATURE TYPE CV: http://vocabulary.odm2.org/samplingfeaturetype/
+* for point data: convert geometry to a vector of well-known text (WKT) using writeWKT
+
+
+```{r,eval=FALSE}
+# dbWriteTable(db, c("odm2","samplingfeatures"),
+#              new_samp_features, 
+#              overwrite = FALSE, 
+#              row.names = FALSE,
+#              append = TRUE)
+```
+
+See if they are there now
+
+```{r}
+dbGetQuery(db, "SELECT * FROM ODM2.samplingfeatures")
+```
+
+
+Don't forget to disconnect at the end
+
+```{r}
+dbDisconnect(db)
+```
+
