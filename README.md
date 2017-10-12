@@ -14,3 +14,8 @@ read in a google earth kmz file and add point locations as sites to the sampling
 * `general-db-interactions` - connecting to database, listing tables, getting info about tables, simple queries
 * `insert-methods` - add methods to the methods table from csv file with columns as in the methods table
 
+**Links**
+
+* [View on Github](https://github.com/palmerlab-umd/choptank-db)
+* [ODM2 Vocabulary](http://vocabulary.odm2.org/)
+* [Schema diagrams](http://odm2.github.io/ODM2/schemas/ODM2_Current/diagrams/index.html)

@@ -23,6 +23,7 @@ In general, the steps of this process are:
 
 ```{r setup, include=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+password <- scan(".pgpass", what="")
 ```
 
 ## Load the necessary libraries
@@ -35,11 +36,12 @@ library(rgeos) # spatial
 library(sf) # spatial
 library(uuid) # unique ids
 library(RPostgreSQL) # database
+library(knitr)
 ```
 
 ## Connect to the database
 
-To get familiar with the database, see the document on general database interactions
+Use `dbConnect()` to create an object called `db` for interacting with the database. To get familiar with the database, see the document on general database interactions. 
 
 ```{r, include=FALSE}
 db <- dbConnect(PostgreSQL(), 
@@ -55,74 +57,69 @@ This example uses a `.kmz` file created from Google Earth.
 
 ```{r}
 path = "/nfs/palmer-group-data/Choptank/data"
-wetlands <- readOGR(file.path(path, "SamplingFeature_sites.kmz"))
+new_sites <- readOGR(file.path(path, "Soil_Chambers.kmz"))
 ```
 
-# Match column names to database table
+> `new_sites` is a spatial polygons data frame, where the dataframe contains columns called *Name* and *description* from google earth file. 
+
+### Match column names to database table
+
+Now make data frame to append to sampling features table. Refer to the [ODM2 documentation](http://odm2.github.io/ODM2/schemas/ODM2_Current/tables/ODM2Core_SamplingFeatures.html) for more details on each of the columsn in this table. 
+
+* code is the short 2 letter name
+* name is a longer informative name
+* type is site for locations (compared to speciment for samples)
+* [FEATURE TYPE CV](http://vocabulary.odm2.org/samplingfeaturetype/)
+* for point data: convert geometry to a vector of well-known text (WKT) using writeWKT
 
 ```{r}
-new_samp_features <- data.frame("samplingfeaturecode" = wetlands$Name,
-                                "samplingfeaturename" = wetlands$description,
+new_samp_features <- data.frame("samplingfeaturecode" = new_sites$Name,
+                                "samplingfeaturename" = new_sites$description,
                                 "samplingfeaturetypecv" = "site",
-                                "featuregeometrywkt" = writeWKT(wetlands, byid = TRUE),
+                                "featuregeometrywkt" = writeWKT(new_sites, byid = TRUE),
                                 "samplingfeaturegeotypecv" = "point")
 ```
 
-generate uuids
+### Generate uuids
 
-```{r}
+```{r, results='asis'}
 new_samp_features$samplingfeatureuuid <- sapply(1:nrow(new_samp_features), UUIDgenerate)
+kable(new_samp_features)
 ```
-
-wetlands is a spatial polygons data frame
-
-dataframe contains Name and description from google earth file
 
 
 # Connect to database and append sampling features table
 
 ```{r}
-
 # list all database tables
-dbListTables(db)
+# dbListTables(db)
 # list columns in sampling features table
 dbListFields(db, c("odm2", "samplingfeatures"))
 # all sampling features
-dbGetQuery(db, "SELECT * FROM odm2.samplingfeatures")
+# dbGetQuery(db, "SELECT * FROM odm2.samplingfeatures")
 # current sites 
 sites <- dbGetQuery(db, "SELECT * FROM odm2.samplingfeatures WHERE samplingfeaturetypecv = 'site'")
 ```
 
-```{r}
-sites
+```{r, results='asis'}
+kable(sites)
 ```
 
-
-make data frame to append to sampling features table
-
-http://odm2.github.io/ODM2/schemas/ODM2_Current/tables/ODM2Core_SamplingFeatures.html
-
-* code is the short 2 letter name
-* name is a longer informative name
-* type is site for locations (compared to speciment for samples)
-* FEATURE TYPE CV: http://vocabulary.odm2.org/samplingfeaturetype/
-* for point data: convert geometry to a vector of well-known text (WKT) using writeWKT
-
+This is the code for updating the table. Running the code within the chunk should update the database. It is not evaluated when the markdown is knit because of the `eval=FALSE` chunk setting, for the purposes of this documentation. 
 
 ```{r,eval=FALSE}
-# dbWriteTable(db, c("odm2","samplingfeatures"),
-#              new_samp_features, 
-#              overwrite = FALSE, 
-#              row.names = FALSE,
-#              append = TRUE)
+dbWriteTable(db, c("odm2","samplingfeatures"),
+             new_samp_features,
+             overwrite = FALSE,
+             row.names = FALSE,
+             append = TRUE)
 ```
 
 See if they are there now
 
 ```{r}
-dbGetQuery(db, "SELECT * FROM ODM2.samplingfeatures")
+# dbGetQuery(db, "SELECT * FROM ODM2.samplingfeatures")
 ```
-
 
 Don't forget to disconnect at the end
 
