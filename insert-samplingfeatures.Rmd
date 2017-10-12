@@ -8,7 +8,7 @@ output:
 
 # Introduction 
 
-This document is a guide for adding or updating site locations to the Choptank database. The database uses the ODM2 framework schema and vocabulary. 
+This document is a guide for adding or updating site locations to the Choptank database. The database uses the ODM2 framework schema and vocabulary. Please note, this document is only intended to be used as a guide to *assist* in the development of your *own* scripts [e.g., eat your vegetables].   
 
 __Sites__ are a type of *sampling feature* and are uniquely identified by a unique short code (e.g. a 2-letter code identifying each wetland) as well as a computer-generated universally unique ID (uuid). We can also include a longer name, description, and spatial information. 
 
@@ -41,7 +41,7 @@ library(knitr)
 
 ## Connect to the database
 
-Use `dbConnect()` to create an object called `db` for interacting with the database. To get familiar with the database, see the document on general database interactions. 
+Use `dbConnect()` to create an object called `db` for interacting with the database. To get familiar with the database, see the document on general database interactions [Forthcoming from Kelly]. 
 
 ```{r, include=FALSE}
 db <- dbConnect(PostgreSQL(), 
@@ -84,7 +84,7 @@ new_samp_features <- data.frame("samplingfeaturecode" = new_sites$Name,
 
 ```{r, results='asis'}
 new_samp_features$samplingfeatureuuid <- sapply(1:nrow(new_samp_features), UUIDgenerate)
-kable(new_samp_features)
+kable(new_samp_features[1:5,])
 ```
 
 
