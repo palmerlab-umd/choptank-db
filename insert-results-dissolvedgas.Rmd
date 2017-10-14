@@ -4,58 +4,29 @@ author: "Kelly Hondula"
 output:
   html_document:
     toc: yes
-    toc_float: yes
+    toc_float:
+      collapsed: FALSE
 ---
 
-# Introduction
+# Set up
 
-This is a guide for inserting dissolved gas measurements into the choptank database. The general format of this can likely be adapted for other types of results that come from taking a water sample and then running a laboratory analysis to get results. 
-
-The starting point for using this worksheet is having a spreadsheet/data frame of sample results where each row corresponds to one sample (i.e. "tidy data"). This is the information needed about each sample: 
-
-| Name    | Description                                                      | 
-|---------+------------------------------------------------------------------|
-| **sampling feature code** | a short identifier for the sample specimen | 
-| **datetime** | properly formatted date and time of sample collection |
-| **method** | the name or code of the method used to collect the sample (should already exist in the **Methods** table) |
-| **datavalue** | the result value |
-| **resulttype** | the type of result [result type CV](http://vocabulary.odm2.org/resulttype/) likely "measurement" |
-| **censorcodeCV** | actual value or otherwise ([censor codes](http://vocabulary.odm2.org/censorcode/))  "notCensored" |
-| **qualitycodeCV** | is the data quality good, bad, marginal, unknown, none |
-| **aggregation statistic** | what time period is the result associated with  [aggregation statistic CV](http://vocabulary.odm2.org/aggregationstatistic/)  "sporadic" |
-| **time aggregation interval** | a number | 
-| **time aggregation intervalunits** | 
-| **variable** | |
-| **units** | | 
-| **processing level** | raw, quality controlled, derived, interpreted, etc. [odm2 documentation](https://github.com/ODM2/ODM2/blob/master/doc/ODM2Docs/core_processinglevels.md)  |
-| **sampledmedium** | air, soil, water, etc. [medium CV](http://vocabulary.odm2.org/medium/)  |
-| **value count** | number of data values in the result (should be 1) |
-| **sampling feature description** |(optional) a longer description of the sample | 
-| **related feature** | (optional) the short identifier of the site the sample was collected at, to put in the related features table. | 
-
-
+Load the necessary libraries and connect to the database. 
 
 ```{r setup, include=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 password <- scan(".pgpass", what="")
 ```
 
-## Load the necessary libraries
-
 If the library is not installed on your computer, use `install.packages()`. 
 
 ```{r, message=FALSE}
-library(rgdal) # spatial data types
-library(rgeos) # spatial 
-library(sf) # spatial
 library(uuid) # unique ids
 library(RPostgreSQL) # database
-library(knitr)
+library(knitr) # kable for table formatting
+library(readr) # read_csv
+library(DT) # data table formatting
+library(lubridate) # dates and times helpers
 ```
-
-## Connect to the database
-
-Use `dbConnect()` to create an object called `db` for interacting with the database. To get familiar with the database, see the document on general database interactions. 
 
 ```{r, include=FALSE}
 db <- dbConnect(PostgreSQL(), 
@@ -64,17 +35,388 @@ db <- dbConnect(PostgreSQL(),
                  password = password)
 ```
 
-# New methods
+# Introduction
+
+This is a guide for inserting dissolved gas measurements into the choptank database. The general format of this can be adapted for other types of results that come from taking a water sample and then running a laboratory analysis to get results.
+
+The general steps are:
+
+1. add the sample to the sampling features list, and make it a related feature of the site it was sampled from
+1. update the actions table for collecting the sample
+1. make a link between the action and sample by updating the feature action table 
+1. make a new result in the results table associated with the feature action
+1. insert measurement results and measurement result values, associated with the result id
+
+If the results are more than one value (e.g. a spectra or multiple ions), there will be multiple rows in the measurement result values table. 
+
+# New data
+
+The starting point for using this worksheet is having a spreadsheet/data frame of sample results where each row corresponds to one sample (i.e. "tidy data"). Each result is the result of a "feature action", in this case taking a water/gas sample for headspace analysis. 
+
+Read in a file of results to be entered
+
+```{r, message=FALSE, echo=FALSE}
+hs_conc_files <- list.files("/nfs/khondula-data/Delmarva/data-analysis/gc-data/")[grep("hs_conc_", list.files("/nfs/khondula-data/Delmarva/data-analysis/gc-data/"))]
+hs_conc_files <- paste0("/nfs/khondula-data/Delmarva/data-analysis/gc-data/", hs_conc_files)
+hs_conc_data <- lapply(hs_conc_files, read_csv)
+ch4_data <- do.call(rbind, hs_conc_data)
+```
+
+Each row of the data frame corresponds to one sample, identified by the **Exetainer_ID**. The date and time are there but not formatted correctly. The data values are in the `orig_liq_conc` column. 
+
+See ODM2 documentation on [handling dates and times](https://github.com/ODM2/ODM2/blob/master/doc/ODM2Docs/bp_handlingdatesandtimes.md) and [unknown dates](https://github.com/ODM2/ODM2/blob/master/doc/ODM2Docs/bp_unknowndates.md)
+
+```{r, results='asis'}
+kable(ch4_data[1:5,])
+```
+
+
+There is a lot more information needed to provide metadata about these samples. This is the information needed: 
+
+| Name    | Description                                                      | 
+|---------+------------------------------------------------------------------|
+| **sampling feature code** | a short identifier for the sample specimen | 
+| **datetime** | properly formatted date and time of sample collection |
+| **method** | the name or code of the method used to collect the sample (should already exist in the **Methods** table) |
+| **datavalue** | the result value (numeric) |
+| **resulttype** | the [result type](http://vocabulary.odm2.org/resulttype/), likely "measurement" |
+| **censorcodeCV** | refer to [censor codes](http://vocabulary.odm2.org/censorcode/), "notCensored" if the actual value |
+| **qualitycodeCV** | is the data quality good, bad, marginal, unknown, none |
+| **aggregation statistic** | what time period is the result associated with according to the [aggregation statistic CV](http://vocabulary.odm2.org/aggregationstatistic/), e.g. "sporadic" |
+| **time aggregation interval** | | 
+| **time aggregation intervalunits** | |
+| **variable** | the variable or code of the variable used to collect the sample (should already exist in the **variables** table)|
+| **units** | units, which should already exist in the [units](http://vocabulary.odm2.org/units/) table | 
+| **processing level** | raw, quality controlled, derived, interpreted, etc. [odm2 documentation](https://github.com/ODM2/ODM2/blob/master/doc/ODM2Docs/core_processinglevels.md)  |
+| **sampledmedium** | air, soil, water, etc. from the [medium CV](http://vocabulary.odm2.org/medium/) |
+| **value count** | number of data values in the result (should be 1) |
+| **sampling feature description** | (optional but encouraged) a longer description of the sample | 
+| **related feature** | (optional but encouraged) the short identifier of the site the sample was collected at, to put in the related features table. | 
+
+## Methods
 
 If your method for sample collection is not already in the database, add it to the methods table. 
+
 
 ```{r, results='asis'}
 methods <- dbGetQuery(db, "SELECT * FROM odm2.methods")
 kable(methods[,1:4])
 ```
 
-## New data
+Describe the new method here. Method type should use the [method type CV](http://vocabulary.odm2.org/methodtype/).
+
+```{r}
+methodtypecv = "specimenCollection"
+methodcode = "HS"
+methodname = "Headspace dissolved gas"
+methoddescription = "NEON protocol for headspace dissolved gas sampling followed by GC analysis and calculation of original gas concentration"
+methodlink = NA
+organizationid = NA
+```
+
+Make an SQL statement to put new method in database using `sprintf()` to put the variables entered above into the character string.
+
+```{r}
+sql <- sprintf("INSERT INTO odm2.methods 
+        (methodtypecv, methodcode, methodname, methoddescription) 
+        VALUES
+        ('%s', '%s', '%s', '%s')", 
+        methodtypecv, methodcode, methodname, methoddescription)
+sql
+```
+
+The code above has line breaks in it to help readability. remove the line breaks in the code. 
+
+```{r}
+sql <- gsub("\n", "", sql)
+sql
+```
+
+Then put in the database. 
+
+```{r, eval=FALSE}
+dbGetQuery(db, sql) 
+```
+
+## Variables
+
+Use variable names from the [variables CV](http://vocabulary.odm2.org/variablename/) if possible. See if the variable already exists in the database variables table, otherwise add it. 
+
+```{r, results='asis'}
+vars <- dbGetQuery(db, "SELECT * FROM odm2.variables")
+kable(vars[,])
+```
+
+SQL statement to add new variable
+
+```{r, eval=FALSE}
+sql <- "INSERT INTO odm2.variables 
+        (variabletypecv, variablecode, variablenamecv, variabledefinition, nodatavalue) 
+        VALUES 
+        ('WaterQuality', 'methaneDissolved_test', 'Methane, dissolved', 'Dissolved Methane (CH4)', '-9999')"
+
+sql <- gsub("\n", "", sql)
+
+dbGetQuery(db, sql)
+```
 
 
-## Restructure to match tables in database
+
+## Units
+
+Look at the [units table](http://vocabulary.odm2.org/units/) from ODM2 to find your units. Make sure that it is in the database and find the units ID. 
+
+```{r}
+dbGetQuery(db, "SELECT * FROM odm2.units WHERE unitsname = 'Micromole per Liter'")
+```
+
+
+You may need to add new units to the units table if it is not there. 
+
+```{r, eval=FALSE}
+sql <- "INSERT INTO odm2.units (unitstypecv, unitsabbreviation, unitsname) VALUES ('Time', 'min', 'Minute')"
+dbGetQuery(db, sql)
+```
+
+
+## DateTime formatting
+
+Dates and times should be combined into one column that is the proper date time format. Fix this in the data sheet. 
+
+For now, just assign all times as midnight. 
+
+The [lubrdiate](https://cran.r-project.org/web/packages/lubridate/vignettes/lubridate.html) package can help with date time formatting.
+
+Sept doesn't seem to be recognized 
+
+```{r}
+ch4_data$Field_sample_date <- gsub(pattern = "Sept", replacement = "September",
+                                   ch4_data$Field_sample_date)
+```
+
+This will be the begindatetime in the actions table.
+
+```{r}
+ch4_data$date <- strptime(ch4_data$Field_sample_date, 
+                          format = "%B %d, %Y",
+                          tz = "")
+```
+
+utc offset
+
+```{r}
+utcoffset <- format(Sys.time(), "%z")
+utcoffset <- as.integer(substr(utcoffset, 1,3))
+```
+
+
+## Sample description
+
+Concatenate information from a few columns to make informative sample descriptions
+
+```{r}
+ch4_data$sampledescription <- paste("HS sample",
+                                    ch4_data$Exetainer_ID, "collected at", 
+                                    ch4_data$Site, "on",
+                                    as.character(ch4_data$date))
+```
+
+
+## metadata about samples
+
+```{r}
+methodcode = "HS"
+variablecode = "methaneDissolved"
+unitsname = "Micromole per Liter"
+sampledmedium = "liquidAqueous"
+```
+
+Other metadata
+
+> processling level is 2 for headspace dissolved gas measurements since they are derived from other measurements
+
+```{r}
+dbGetQuery(db, "SELECT * FROM odm2.units WHERE unitsname = 'Minute'")
+```
+
+
+```{r}
+resulttypecv = "measurement"
+censorcodecv = "notCensored"
+qualitycodecv = "unknown"
+aggregationstatisticcv = "sporadic"
+timeaggregationinterval = 1 # assume 1 minute
+timeaggregationintervalunitsid = 1157 # minute
+processlinglevel = 2
+valuecount = 1
+```
+
+# Inserting into database
+
+Construct an SQL statement to update all of the appropriate tables for a sample
+
+1. add the sample to the sampling features list, and make it a related feature of the site it was sampled from
+1. update the actions table for collecting the sample
+1. make a link between the action and sample by updating the feature action table 
+1. make a new result in the results table associated with the feature action
+1. insert measurement results and measurement result values, associated with the result id
+
+## Sql craziness
+
+Make the structure of the SQL statement
+
+```{r}
+sql_blanks <- 'WITH 
+newsf AS (
+INSERT INTO odm2.samplingfeatures
+(samplingfeatureuuid, samplingfeaturetypecv, samplingfeaturecode, samplingfeaturedescription)
+VALUES (\'%s\', \'%s\', \'%s\', \'%s\')
+RETURNING samplingfeatureid),
+
+newrelation AS (
+INSERT INTO odm2.relatedfeatures
+(samplingfeatureid, relationshiptypecv, relatedfeatureid)
+VALUES ((SELECT newsf.samplingfeatureid FROM newsf), \'%s\', (SELECT samplingfeatureid FROM odm2.samplingfeatures WHERE samplingfeaturecode = \'%s\'))),
+
+newact AS (
+INSERT INTO odm2.actions
+(actiontypecv, methodid, begindatetime, begindatetimeutcoffset)
+VALUES
+(\'%s\', (SELECT methodid FROM odm2.methods WHERE methodcode = \'%s\'), \'%s\', \'%s\')
+RETURNING actionid),
+
+newfa AS (
+INSERT into odm2.featureactions
+(samplingfeatureid, actionid)
+VALUES ((SELECT newsf.samplingfeatureid FROM newsf), (SELECT newact.actionid FROM newact))
+RETURNING featureactionid),
+
+newresult AS (
+INSERT INTO odm2.results
+(featureactionid, resultuuid, resulttypecv, variableid, unitsid, processinglevelid, sampledmediumcv, valuecount)
+VALUES ((SELECT newfa.featureactionid FROM newfa), \'%s\', \'%s\', (SELECT variableid FROM odm2.variables WHERE variablecode = \'%s\'), (SELECT unitsid FROM odm2.units WHERE unitsname = \'%s\'), \'%s\', \'%s\', \'%s\')
+RETURNING resultid),
+
+newmr AS (
+INSERT INTO odm2.measurementresults
+(resultid, censorcodecv, qualitycodecv, aggregationstatisticcv, timeaggregationinterval, timeaggregationintervalunitsid)
+VALUES ((SELECT newresult.resultid FROM newresult), \'%s\', \'%s\', \'%s\', \'%s\', \'%s\')) 
+
+INSERT INTO odm2.measurementresultvalues
+(resultid, datavalue, valuedatetime, valuedatetimeutcoffset)
+VALUES ((SELECT newresult.resultid FROM newresult), \'%s\', \'%s\', \'%s\')
+RETURNING resultid
+'
+```
+
+# function to insert results
+
+```{r}
+# needs sql_blanks, ch4_data, db connection
+# as well as al the other parameters
+
+insert_methaneDissolved_results <- function(x){
+  # create SQL statement
+  sql <- sprintf(sql_blanks,
+  UUIDgenerate(), 'specimen', ch4_data$Exetainer_ID[x],
+  ch4_data$sampledescription[x], 
+  'isChildOf', ch4_data$Site[x],
+  'specimenCollection', methodcode, as.character(ch4_data$date[x]),
+  utcoffset, 
+  UUIDgenerate(), 'measurement', variablecode, unitsname,
+  '3', # processing level 2 id is 3
+  sampledmedium, '1',
+  censorcodecv, qualitycodecv, aggregationstatisticcv,
+  timeaggregationinterval, timeaggregationintervalunitsid,
+  ch4_data$orig_liq_conc[x], as.character(ch4_data$date[x]), utcoffset)
+  # remove line endings
+  sql <- gsub("\n", "", sql)
+  # insert into database
+  dbGetQuery(db, sql)
+}
+```
+
+Note that the function doesn't work if the site is not in the sampling features table 
+
+`x` is the number of the row from the original sample table (`ch4_data` in this case). So run the function for each of the samples to be entered into the database, either one at a time
+
+```{r, eval=FALSE}
+insert_methaneDissolved_results(2)
+```
+
+or over a range with an apply function
+
+```{r, eval=FALSE}
+lapply(3:65, function(x) insert_methaneDissolved_results(x))
+```
+
+
+This is what the function is doing piece by piece. 
+
+First, fill in the blanks (`%s`) with the `sprintf()` function. 
+
+```{r}
+sql <- sprintf(sql_blanks, 
+  UUIDgenerate(), 
+  'specimen',
+  ch4_data$Exetainer_ID[1],
+  ch4_data$sampledescription[1],
+  'isChildOf', 
+  ch4_data$Site[1],
+  'specimenCollection',
+  methodcode,
+  as.character(ch4_data$date[1]),
+  utcoffset,
+  UUIDgenerate(),
+  'measurement',
+  variablecode,
+  unitsname,
+  '3', # processing level 2 id is 3
+  sampledmedium,
+  '1',
+  censorcodecv,
+  qualitycodecv,
+  aggregationstatisticcv,
+  timeaggregationinterval,
+  timeaggregationintervalunitsid,
+  ch4_data$orig_liq_conc[1],
+  as.character(ch4_data$date[1]), 
+  utcoffset)
+```
+
+If you want to see what the sql looks like
+
+```{r, eval=FALSE}
+write(sql, "sql.txt")
+```
+
+Then it gets rid of line endings before executing the sql
+
+```{r}
+sql <- gsub("\n", "", sql)
+sql
+```
+
+Then executes the sql into database!
+
+```{r, eval=FALSE}
+dbGetQuery(db, sql)
+```
+
+# Query to get results
+
+```{r}
+resultvalues <- dbReadTable(db, c("odm2", "measurementresultvalues"))
+```
+
+```{r, results='asis'}
+kable(resultvalues[1:5,])
+```
+
+
+Joins... coming soon
+
+Example of querying database for results from a known sample name
+
+Example of querying database for all results associated with a given site
 

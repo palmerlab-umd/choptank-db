@@ -3,7 +3,8 @@ title: "How to make a map of the sites in the choptank database"
 output:
   html_document:
     toc: true
-    toc_float: true
+    toc_float:
+        collapsed: false
 ---
 
 ```{r setup, include=FALSE, message=FALSE}
@@ -49,7 +50,8 @@ Add sites to simple leaflet map with pop-up of the site name and code.
 ```{r}
 leaflet(sites_sf) %>%
   addProviderTiles("Esri.WorldImagery") %>%
-  addMarkers(popup = ~paste0(samplingfeaturename," (", samplingfeaturecode, ")"))
+  addMarkers(popup = ~paste0(samplingfeaturename," (", samplingfeaturecode, ")"),
+             clusterOptions = markerClusterOptions())
 ```
 
 # Save as a kmz
@@ -66,7 +68,12 @@ Add a column called *Name* to show up in google earth
 
 ```{r}
 sites_sp@data$Name <- paste0(sites_sp@data$samplingfeaturecode, "_", sites_sp@data$samplingfeaturename)
-# writeOGR(sites_sp, "sites_5-Oct-2017.kmz", "sites_5-Oct-2017", driver="KML")
+```
+
+Save the file using `writeOGR()` and the KML driver. Provide a name for the file and a name for the layer. 
+
+```{r, eval=FALSE}
+writeOGR(sites_sp, "sites_5-Oct-2017.kmz", "sites_5-Oct-2017", driver="KML")
 ```
 
 Don't forget to disconnect at the end

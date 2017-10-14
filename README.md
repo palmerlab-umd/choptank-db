@@ -11,10 +11,14 @@ read in a google earth kmz file and add point locations as sites to the sampling
 
 1. [Add sample results](https://palmerlab-umd.github.io/choptank-db/insert-sample-results.html): add results from samples with one value in the results
 
+---
+
 # Maps
 
-[Nate's Approximate Well Locations](https://palmerlab-umd.github.io/choptank-db/ApproxWellLoc.html) 
+* [Nate's Approximate Well Locations](https://palmerlab-umd.github.io/choptank-db/ApproxWellLoc.html) 
 *as of October 3, 2017*
+
+--- 
 
 __Coming soon__:
 

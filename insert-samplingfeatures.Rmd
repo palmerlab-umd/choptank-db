@@ -3,7 +3,8 @@ title: "How to add new sampling sites to the choptank database"
 output:
   html_document:
     toc: true
-    toc_float: true
+    toc_float:
+        collapsed: FALSE
 ---
 
 # Introduction 
@@ -74,7 +75,8 @@ Now make data frame to append to sampling features table. Refer to the [ODM2 doc
 
 ```{r}
 new_samp_features <- data.frame("samplingfeaturecode" = new_sites$Name,
-                                "samplingfeaturename" = new_sites$description,
+                                "samplingfeaturedescription" = new_sites$description,
+                                "samplingfeaturename" = new_sites$Name,
                                 "samplingfeaturetypecv" = "site",
                                 "featuregeometrywkt" = writeWKT(new_sites, byid = TRUE),
                                 "samplingfeaturegeotypecv" = "point")
@@ -102,7 +104,7 @@ sites <- dbGetQuery(db, "SELECT * FROM odm2.samplingfeatures WHERE samplingfeatu
 ```
 
 ```{r, results='asis'}
-kable(sites)
+kable(sites[1:5,])
 ```
 
 This is the code for updating the table. Running the code within the chunk should update the database. It is not evaluated when the markdown is knit because of the `eval=FALSE` chunk setting, for the purposes of this documentation. 
@@ -115,10 +117,10 @@ dbWriteTable(db, c("odm2","samplingfeatures"),
              append = TRUE)
 ```
 
-See if they are there now
+If you want to see if they are there now
 
-```{r}
-# dbGetQuery(db, "SELECT * FROM ODM2.samplingfeatures")
+```{r, eval=FALSE}
+dbGetQuery(db, "SELECT * FROM ODM2.samplingfeatures")
 ```
 
 Don't forget to disconnect at the end

@@ -1,0 +1,158 @@
+---
+title: "How to update the related samplingfeatures table"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+# Introduction 
+
+__Sites__ are a type of *sampling feature* and are uniquely identified by a unique short code (e.g. a 2-letter code identifying each wetland) as well as a computer-generated universally unique ID (uuid). We can also include a longer name, description, and spatial information. 
+
+# Set up
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+password <- scan(".pgpass", what="")
+```
+
+## Load the necessary libraries
+
+If the library is not installed on your computer, use `install.packages()`. 
+
+```{r, message=FALSE}
+library(rgdal) # spatial data types
+library(rgeos) # spatial 
+library(sf) # spatial
+library(uuid) # unique ids
+library(RPostgreSQL) # database
+library(knitr)
+library(dplyr)
+```
+
+## Connect to the database
+
+Use `dbConnect()` to create an object called `db` for interacting with the database. To get familiar with the database, see the document on general database interactions [Forthcoming from Kelly]. 
+
+```{r, include=FALSE}
+db <- dbConnect(PostgreSQL(), 
+                 host = "sesync-postgis01.research.sesync.org",
+                 dbname = "choptank", user = "palmergroup",
+                 password = password)
+```
+
+
+# Related Features Table
+
+The structure of the related features table is described [here](http://odm2.github.io/ODM2/schemas/ODM2_Current/tables/ODM2SamplingFeatures_RelatedFeatures.html). The relationship type controlled vocabulary is [here](http://vocabulary.odm2.org/relationshiptype/).
+
+The column names should match the fields in the database: 
+
+```{r}
+dbListFields(db, c("odm2", "relatedfeatures"))
+```
+
+# was collected at relationship
+
+Water samples collected at wetland sites, chamber measurements taken at a soil chamber site, etc. should be related using the "wasCollectedAt" relationship. The samples are sampling features that are type "specimen". 
+
+# Add parent-child relationships
+
+Because each of the soil chambers is associated with a wetland site, I will describe this as a parent-child relationship among sites, where the soil chamber sites are children of the wetland site they are at. 
+
+E.g. these are the relationships
+
+| samplingfeature 1   | relationshiptypecv | relatedfeature |
+|-------+-------+-------|
+| QB SC A | isChildOf | QB |
+| QB SC B | isChildOf | QB |
+
+If there are very many sites, create this table in a spreadsheet and read it in as a dataframe. 
+
+```{r}
+new_related_sites <- read.csv("relatedfeatures - soilchambers.csv", header = FALSE, stringsAsFactors = FALSE)
+names(new_related_sites) <- c("samplingfeature", "relationshiptypecv", "relatedfeature")
+```
+
+The names given to the columns are not the exact ones in the related features table because these are the names/codes of the sites, not their ids, which need to be gotten from the sampling features table. 
+
+Read in the sampling features table to the R environment. 
+
+```{r}
+sites <- dbReadTable(db, c("odm2", "samplingfeatures"))
+```
+
+Join the sampling features table from the database to the dataframe with the relationships to get the IDs. This is a sequence of two joins to get the ids for the child and parent sampling features. 
+
+```{r}
+new_related_sites %<>% 
+  left_join(sites, by = c("relatedfeature" = "samplingfeaturecode")) %>% 
+  dplyr::select(samplingfeature, relationshiptypecv, relatedfeature, samplingfeatureid) %>%
+  rename(relatedfeatureid = samplingfeatureid) %>%
+  left_join(sites, by = c("samplingfeature" = "samplingfeaturecode")) %>%
+  dplyr::select(samplingfeatureid, relationshiptypecv, relatedfeatureid)
+```
+
+Update table in database 
+
+```{r, eval=FALSE}
+dbWriteTable(db, c("odm2","relatedfeatures"),
+             new_related_sites,
+             overwrite = FALSE,
+             row.names = FALSE,
+             append = TRUE)
+```
+
+Could do the same thing more manually with SQL statements
+
+```{r, eval = FALSE}
+sql <- "SELECT samplingfeatureid, samplingfeaturecode FROM odm2.samplingfeatures WHERE samplingfeaturecode in ('QB SC A', 'QB SC B', 'QB')"
+dbGetQuery(db, sql)
+```
+
+View the related features table 
+
+```{r, results='asis'}
+rf <- dbGetQuery(db, "SELECT * FROM odm2.relatedfeatures")
+kable(rf)
+```
+
+# Delete relationships 
+
+An example of deleting relationships 
+
+```{r, eval=FALSE}
+sql <- "DELETE from odm2.relatedfeatures WHERE relationid >26"
+dbGetQuery(db, sql)
+```
+
+
+Don't forget to disconnect at the end
+
+```{r, eval = FALSE}
+dbDisconnect(db)
+```
+
+# Make network graph of relations
+
+Load up igraph
+
+```{r, message=FALSE}
+library(igraph)
+```
+
+This is a network graph just based on the spreadsheet that was read in for this. Using the related features table from the database should be done with creating the graph from the edgelist and the sampling features table as a list of the nodes. 
+
+```{r, echo=FALSE}
+new_related_sites <- read.csv("relatedfeatures - soilchambers.csv", header = FALSE, stringsAsFactors = FALSE)
+names(new_related_sites) <- c("samplingfeature", "relationshiptypecv", "relatedfeature")
+```
+
+
+```{r}
+new_related_sites
+rf <- graph_from_data_frame(new_related_sites[,c(1,3)], directed = TRUE)
+plot.igraph(rf, edge.arrow.size=0.1, edge.arrow.width=0.5, arrow.mode=0)
+```
+

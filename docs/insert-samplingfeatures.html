@@ -131,7 +131,7 @@ $(document).ready(function ()  {
       ignoreSelector: ".toc-ignore",
       scrollTo: 0
     };
-    options.showAndHide = true;
+    options.showAndHide = false;
     options.smoothScroll = true;
 
     // tocify
@@ -194,6 +194,12 @@ div.tocify {
   border-radius: 0px;
 }
 
+.tocify-subheader {
+  display: inline;
+}
+.tocify-subheader .tocify-item {
+  font-size: 0.95em;
+}
 
 </style>
 
@@ -270,7 +276,8 @@ new_sites &lt;- readOGR(file.path(path, &quot;Soil_Chambers.kmz&quot;))</code></
 <li>for point data: convert geometry to a vector of well-known text (WKT) using writeWKT</li>
 </ul>
 <pre class="r"><code>new_samp_features &lt;- data.frame(&quot;samplingfeaturecode&quot; = new_sites$Name,
-                                &quot;samplingfeaturename&quot; = new_sites$description,
+                                &quot;samplingfeaturedescription&quot; = new_sites$description,
+                                &quot;samplingfeaturename&quot; = new_sites$Name,
                                 &quot;samplingfeaturetypecv&quot; = &quot;site&quot;,
                                 &quot;featuregeometrywkt&quot; = writeWKT(new_sites, byid = TRUE),
                                 &quot;samplingfeaturegeotypecv&quot; = &quot;point&quot;)</code></pre>
@@ -283,6 +290,7 @@ kable(new_samp_features[1:5,])</code></pre>
 <thead>
 <tr class="header">
 <th align="left">samplingfeaturecode</th>
+<th align="left">samplingfeaturedescription</th>
 <th align="left">samplingfeaturename</th>
 <th align="left">samplingfeaturetypecv</th>
 <th align="left">featuregeometrywkt</th>
@@ -294,42 +302,47 @@ kable(new_samp_features[1:5,])</code></pre>
 <tr class="odd">
 <td align="left">QB SC A</td>
 <td align="left">most interior of 5 soil chambers on transect 5m apart (approximate location)</td>
+<td align="left">QB SC A</td>
 <td align="left">site</td>
 <td align="left">POINT (-75.8345276189573383 39.0544974094512867)</td>
 <td align="left">point</td>
-<td align="left">837ab152-af92-11e7-9dfc-001dd8b71c2d</td>
+<td align="left">d28b7ada-b139-11e7-be9d-001dd8b71c2d</td>
 </tr>
 <tr class="even">
 <td align="left">QB SC E</td>
 <td align="left">most upland of 5 soil chambers on transect 5m apart (approximate location)</td>
+<td align="left">QB SC E</td>
 <td align="left">site</td>
 <td align="left">POINT (-75.8343348231713748 39.0544029037487874)</td>
 <td align="left">point</td>
-<td align="left">16798881-b0e6-41a1-ae50-e83b451f11a2</td>
+<td align="left">f0e81375-aae2-455e-b7c4-0d060fd78751</td>
 </tr>
 <tr class="odd">
 <td align="left">QB SC C</td>
 <td align="left">middle of 5 soil chambers on transect 5m apart (approximate location)</td>
+<td align="left">QB SC C</td>
 <td align="left">site</td>
 <td align="left">POINT (-75.8344736499219891 39.0544580928631575)</td>
 <td align="left">point</td>
-<td align="left">695657d8-5ede-48d7-8f91-9819661938da</td>
+<td align="left">bbbb8f99-e455-4117-9582-08b6e8ec238c</td>
 </tr>
 <tr class="even">
 <td align="left">QB SC B</td>
 <td align="left">2nd most interior of 5 soil chambers on transect 5m apart (approximate location)</td>
+<td align="left">QB SC B</td>
 <td align="left">site</td>
 <td align="left">POINT (-75.8345809369696013 39.0545292778680420)</td>
 <td align="left">point</td>
-<td align="left">91ddb616-6df8-4380-8a86-7b0295f2d9dd</td>
+<td align="left">81ad8310-268a-4dab-bbe2-2aba129f7f5f</td>
 </tr>
 <tr class="odd">
 <td align="left">QB SC D</td>
 <td align="left">2nd most upland of 5 soil chambers on transect 5m apart (approximate location)</td>
+<td align="left">QB SC D</td>
 <td align="left">site</td>
 <td align="left">POINT (-75.8343937912614052 39.0544290909816567)</td>
 <td align="left">point</td>
-<td align="left">f685690b-2e52-4984-91a6-1e8a8241b473</td>
+<td align="left">21613e2c-ca4c-4f12-968c-fd8dc7f8960d</td>
 </tr>
 </tbody>
 </table>
@@ -356,7 +369,7 @@ sites &lt;- dbGetQuery(db, &quot;SELECT * FROM odm2.samplingfeatures WHERE sampl
 <pre><code>## Warning in postgresqlExecStatement(conn, statement, ...): RS-DBI driver
 ## warning: (unrecognized PostgreSQL field type geometry (id:114457131) in
 ## column 7)</code></pre>
-<pre class="r"><code>kable(sites)</code></pre>
+<pre class="r"><code>kable(sites[1:5,])</code></pre>
 <table>
 <thead>
 <tr class="header">
@@ -374,318 +387,6 @@ sites &lt;- dbGetQuery(db, &quot;SELECT * FROM odm2.samplingfeatures WHERE sampl
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
-<td align="right">85</td>
-<td align="left">c493104e-ae0c-11e7-bbea-001dd8b71c2d</td>
-<td align="left">site</td>
-<td align="left">QB SC A</td>
-<td align="left">most interior of 5 soil chambers on transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8345276189573383 39.0544974094512867)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">86</td>
-<td align="left">56463c7e-bc63-4d2a-96b8-bf5f6edf8a85</td>
-<td align="left">site</td>
-<td align="left">QB SC E</td>
-<td align="left">most upland of 5 soil chambers on transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8343348231713748 39.0544029037487874)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">87</td>
-<td align="left">8547c597-2531-4c79-9f05-b43ca905beaa</td>
-<td align="left">site</td>
-<td align="left">QB SC C</td>
-<td align="left">middle of 5 soil chambers on transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8344736499219891 39.0544580928631575)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">88</td>
-<td align="left">68268927-09d0-4f19-a77c-a695e10c7f7f</td>
-<td align="left">site</td>
-<td align="left">QB SC B</td>
-<td align="left">2nd most interior of 5 soil chambers on transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8345809369696013 39.0545292778680420)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">89</td>
-<td align="left">b7782219-1a9c-4de0-bc05-e3b87957fe82</td>
-<td align="left">site</td>
-<td align="left">QB SC D</td>
-<td align="left">2nd most upland of 5 soil chambers on transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8343937912614052 39.0544290909816567)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">90</td>
-<td align="left">2e4d3e13-db4c-4a7d-8924-be53231b34ff</td>
-<td align="left">site</td>
-<td align="left">JA SC A</td>
-<td align="left">most interior of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8258489541192660 39.0651438211572426)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">91</td>
-<td align="left">c3d73cbb-dfbc-49fd-801a-0d3faef0391a</td>
-<td align="left">site</td>
-<td align="left">JA SC B</td>
-<td align="left">center of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8257577914992567 39.0651264271237224)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">92</td>
-<td align="left">65f3128f-ff71-483e-afd7-534f94a52e3d</td>
-<td align="left">site</td>
-<td align="left">JA SC C</td>
-<td align="left">most upland of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8256756185791119 39.0651040530023792)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">93</td>
-<td align="left">1dd76d37-107a-4c10-be60-ec0083270274</td>
-<td align="left">site</td>
-<td align="left">JB SC A</td>
-<td align="left">most interior of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8252580658446504 39.0642207451372130)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">94</td>
-<td align="left">cf4b8fa0-699f-47f3-8df6-1b4f1839499f</td>
-<td align="left">site</td>
-<td align="left">JB SC B</td>
-<td align="left">middle of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8252157474444886 39.0641757201476665)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">95</td>
-<td align="left">73bde27d-063f-4b80-a444-d12babb9253f</td>
-<td align="left">site</td>
-<td align="left">JB SC C</td>
-<td align="left">most upland of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8251736331457380 39.0641383569311600)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">96</td>
-<td align="left">f6f88a2b-c6ee-4538-9c33-50f824989893</td>
-<td align="left">site</td>
-<td align="left">DB SC A</td>
-<td align="left">most interior of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7576163040169916 39.0586885431952169)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">97</td>
-<td align="left">94e2d0df-2c51-4e32-9d0f-a719de962422</td>
-<td align="left">site</td>
-<td align="left">DB SC B</td>
-<td align="left">middle of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7576135276484735 39.0587573115057509)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">98</td>
-<td align="left">ee783cdd-dc3f-4b8d-8bb7-7662a8472b33</td>
-<td align="left">site</td>
-<td align="left">DB SC C</td>
-<td align="left">most upland of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7576235870625965 39.0588299167309927)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">99</td>
-<td align="left">5544ccc0-fe06-46b8-ba35-ba7599af8031</td>
-<td align="left">site</td>
-<td align="left">TB SC A</td>
-<td align="left">most interior of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7560347807923620 39.0582496579809373)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">100</td>
-<td align="left">48222992-81b2-4736-859a-0b9ebfd7de09</td>
-<td align="left">site</td>
-<td align="left">TB SC B</td>
-<td align="left">middle of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7560711932331969 39.0583029588279871)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">101</td>
-<td align="left">8cd1acb8-f7f5-4eb2-b0a5-cd139f670ac6</td>
-<td align="left">site</td>
-<td align="left">TB SC C</td>
-<td align="left">most upland of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7561032805576957 39.0583550399533976)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">102</td>
-<td align="left">c6957606-8457-42f5-89da-837c90bfb377</td>
-<td align="left">site</td>
-<td align="left">BB SC A</td>
-<td align="left">soil chamber (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7519966002225686 39.0580144965493830)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">103</td>
-<td align="left">15bfbf88-c731-4dbb-bc51-0ba3e87a170a</td>
-<td align="left">site</td>
-<td align="left">ND SC A</td>
-<td align="left">most interior of 3 soil chambers along transect 2.5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7468777935494160 39.0542263444662225)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">104</td>
-<td align="left">581305ac-e08e-41e0-8dbb-045abac1cd50</td>
-<td align="left">site</td>
-<td align="left">ND SC B</td>
-<td align="left">middle of 3 soil chambers along transect 2.5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7469279203054953 39.0542145345456007)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">105</td>
-<td align="left">34372404-5ba5-4efa-a915-6614cd1dc267</td>
-<td align="left">site</td>
-<td align="left">ND SC C</td>
-<td align="left">most upland of 3 soil chambers along transect 2.5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7469934224283037 39.0542051038871634)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">106</td>
-<td align="left">e15035ce-1cbb-44ad-8a44-1aa602942977</td>
-<td align="left">site</td>
-<td align="left">DK SC A</td>
-<td align="left">most interior of 5 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7446084161871198 39.0533035587228383)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">107</td>
-<td align="left">3d804a62-8bc2-453f-91be-6d454a44452f</td>
-<td align="left">site</td>
-<td align="left">DK SC E</td>
-<td align="left">most upland of 5 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7449203041268220 39.0533080383096873)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">108</td>
-<td align="left">9c893a42-1776-4685-8540-7378affe92db</td>
-<td align="left">site</td>
-<td align="left">DK SC C</td>
-<td align="left">middle of 5 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7447576057030432 39.0533040040809070)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
 <tr class="odd">
 <td align="right">44</td>
 <td align="left">72b7ffaa-7cc0-11e7-862e-001dd8b71c2d</td>
@@ -751,422 +452,6 @@ sites &lt;- dbGetQuery(db, &quot;SELECT * FROM odm2.samplingfeatures WHERE sampl
 <td align="right">NA</td>
 <td align="left">NA</td>
 </tr>
-<tr class="even">
-<td align="right">49</td>
-<td align="left">f4326afb-cd31-4e71-9dbf-b995d6b2f857</td>
-<td align="left">site</td>
-<td align="left">JD</td>
-<td align="left">JR07 w3</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8247183511833498 39.0655916539153267)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">50</td>
-<td align="left">8b1c69fe-507c-45a7-a8f5-8b2bf57cccce</td>
-<td align="left">site</td>
-<td align="left">JA</td>
-<td align="left">JR07 w1</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8260044107612714 39.0651425217264432)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">51</td>
-<td align="left">cb08dc12-2ecc-41cd-ad06-2b2c82687345</td>
-<td align="left">site</td>
-<td align="left">JC</td>
-<td align="left">JR07 w3</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8250409956513209 39.0649907893207029)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">52</td>
-<td align="left">50c49681-daca-4e9f-969e-d483389fded2</td>
-<td align="left">site</td>
-<td align="left">JE</td>
-<td align="left">JR07 w5</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8236535326535375 39.0649189558067320)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">53</td>
-<td align="left">59ea2511-5dc9-4d24-900d-d74ade076620</td>
-<td align="left">site</td>
-<td align="left">NB</td>
-<td align="left">Nates Bay</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8245344732483204 39.0638593127024194)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">54</td>
-<td align="left">0453914c-2a88-4408-a5cc-626731ac1aaa</td>
-<td align="left">site</td>
-<td align="left">GB</td>
-<td align="left">Grassy Bay</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8195225345786952 39.0659853597133591)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">55</td>
-<td align="left">6713dd12-a768-4bc3-a375-ff61dded5e19</td>
-<td align="left">site</td>
-<td align="left">BB</td>
-<td align="left">Bubbly Bay</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7519831091429694 39.0580585450542515)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">56</td>
-<td align="left">10f41356-ee3d-4d68-ad0c-501efafd2c88</td>
-<td align="left">site</td>
-<td align="left">FR</td>
-<td align="left">Flux Restored</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7533472116064388 39.0546846527849496)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">57</td>
-<td align="left">81241f2b-d5d5-47ff-a2c6-10c10ab5948a</td>
-<td align="left">site</td>
-<td align="left">GA</td>
-<td align="left">Grassy Road Bay</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8168634513482687 39.0661712808031680)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">58</td>
-<td align="left">c69f30ee-fa06-42de-a47f-509abe967901</td>
-<td align="left">site</td>
-<td align="left">FN</td>
-<td align="left">Flux Natural</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7532890384114097 39.0574336573162171)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">59</td>
-<td align="left">fcee9377-bcff-4f15-9e84-6222a47f25b1</td>
-<td align="left">site</td>
-<td align="left">JB</td>
-<td align="left">JR07 w2</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8253623708957889 39.0644228037336205)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">60</td>
-<td align="left">b01a035b-045d-40f3-896c-e7819bd92e3b</td>
-<td align="left">site</td>
-<td align="left">JU</td>
-<td align="left">Juliannas bay</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8183809595869178 39.0666532863627367)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">61</td>
-<td align="left">012c4482-5467-450d-9911-c39f9c3d9330</td>
-<td align="left">site</td>
-<td align="left">DB</td>
-<td align="left">Dank Bay</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7575787261327775 39.0585543487713025)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">62</td>
-<td align="left">cc7092d1-bb85-4291-97b1-65b76d1e8c4b</td>
-<td align="left">site</td>
-<td align="left">TA</td>
-<td align="left">Tiger1</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7563725288111556 39.0588005653679318)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">63</td>
-<td align="left">0044bd4c-20ab-4c86-b333-d3676afefebe</td>
-<td align="left">site</td>
-<td align="left">TB</td>
-<td align="left">Tiger2</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7558353501734700 39.0581328366076335)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">64</td>
-<td align="left">132c3af6-8bb0-4169-89ca-1eeb2123620b</td>
-<td align="left">site</td>
-<td align="left">TC</td>
-<td align="left">Tiger3</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7550332704121558 39.0576808834890770)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">65</td>
-<td align="left">50eaab12-6ddf-44ee-b039-427c0e83d222</td>
-<td align="left">site</td>
-<td align="left">TD</td>
-<td align="left">Tiger4</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7548990718667312 39.0569526894048522)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">66</td>
-<td align="left">0dafb39a-b2ce-45a1-951a-8b68980739b2</td>
-<td align="left">site</td>
-<td align="left">TE</td>
-<td align="left">Tiger5</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7567801700786845 39.0594531822337601)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">69</td>
-<td align="left">63ce1897-d8aa-4bf3-a09e-46b4f734b737</td>
-<td align="left">site</td>
-<td align="left">GN</td>
-<td align="left">Greg Nat</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7484948318739555 39.0551037926009670)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">70</td>
-<td align="left">43ed12be-ec35-4474-b0f9-5e4e569c9693</td>
-<td align="left">site</td>
-<td align="left">GR</td>
-<td align="left">Greg Restored</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7487351532038389 39.0539694444444407)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">71</td>
-<td align="left">4ee504c0-1db6-4acc-8abd-3e5739a3434e</td>
-<td align="left">site</td>
-<td align="left">ND</td>
-<td align="left">North Dogbone</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7466173956986069 39.0542279514155624)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">72</td>
-<td align="left">66649d52-c8b9-4c42-9dc4-1dbdd72e2c18</td>
-<td align="left">site</td>
-<td align="left">JL</td>
-<td align="left">JL100 w1</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7477887732252100 39.0553230277279013)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">73</td>
-<td align="left">f1414a30-e041-464f-9e2e-44ee636f76b8</td>
-<td align="left">site</td>
-<td align="left">TN</td>
-<td align="left">Tiny Bay</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7472358503672325 39.0533761381052784)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">74</td>
-<td align="left">f8763e72-fe1b-4474-8632-90e89f251654</td>
-<td align="left">site</td>
-<td align="left">AK</td>
-<td align="left">JL25 w1</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7463282781836824 39.0533608600031030)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">75</td>
-<td align="left">beb53055-1c83-4e93-9942-3132316fc2fb</td>
-<td align="left">site</td>
-<td align="left">TM</td>
-<td align="left">JL25 w2</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7455792056816506 39.0533485024618230)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">76</td>
-<td align="left">6d7b928f-e55e-4efa-b67e-4f81eac174af</td>
-<td align="left">site</td>
-<td align="left">DK</td>
-<td align="left">Dark Bay</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7445243249029687 39.0532931096852423)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">77</td>
-<td align="left">42d9595b-378c-43f1-b9e7-e128e1336572</td>
-<td align="left">site</td>
-<td align="left">SD</td>
-<td align="left">Sad shallow carcass bay</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7438344696633976 39.0537042091321567)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">67</td>
-<td align="left">115d53b2-bb6e-48ca-88c4-f9aee7a8ffa5</td>
-<td align="left">site</td>
-<td align="left">TF</td>
-<td align="left">Tiger6</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7567056439953319 39.0599771106761295)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">68</td>
-<td align="left">8791257c-2b63-4926-abb7-9e725db9d3c9</td>
-<td align="left">site</td>
-<td align="left">TG</td>
-<td align="left">Tiger7</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7564801873020741 39.0604061761795833)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">109</td>
-<td align="left">57cdbc77-66fc-4542-83f7-baac4b514cf2</td>
-<td align="left">site</td>
-<td align="left">DK SC D</td>
-<td align="left">2nd most upland of 5 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7448297839485889 39.0533072257193297)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">110</td>
-<td align="left">ac47ea59-cabe-4106-a42b-cdd99890a26c</td>
-<td align="left">site</td>
-<td align="left">DK SC B</td>
-<td align="left">2nd most interior of 5 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.7446850696484546 39.0533007646469130)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">80</td>
-<td align="left">52ea5d58-81f7-11e7-8fad-001dd8b71c2d</td>
-<td align="left">site</td>
-<td align="left">NS</td>
-<td align="left">Not something bay</td>
-<td align="left">NA</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8343576143462457 39.0533686579482122)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
 </tbody>
 </table>
 <p>This is the code for updating the table. Running the code within the chunk should update the database. It is not evaluated when the markdown is knit because of the <code>eval=FALSE</code> chunk setting, for the purposes of this documentation.</p>
@@ -1175,8 +460,8 @@ sites &lt;- dbGetQuery(db, &quot;SELECT * FROM odm2.samplingfeatures WHERE sampl
              overwrite = FALSE,
              row.names = FALSE,
              append = TRUE)</code></pre>
-<p>See if they are there now</p>
-<pre class="r"><code># dbGetQuery(db, &quot;SELECT * FROM ODM2.samplingfeatures&quot;)</code></pre>
+<p>If you want to see if they are there now</p>
+<pre class="r"><code>dbGetQuery(db, &quot;SELECT * FROM ODM2.samplingfeatures&quot;)</code></pre>
 <p>Don’t forget to disconnect at the end</p>
 <pre class="r"><code>dbDisconnect(db)</code></pre>
 <pre><code>## [1] TRUE</code></pre>
