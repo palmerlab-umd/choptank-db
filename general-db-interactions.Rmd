@@ -1,0 +1,156 @@
+---
+title: "General database interactions"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+```
+
+# Introduction
+
+The `choptank` database is hosted on the sesync postgis database server. One way to access it and interact with it is through the `RPostgreSQL` package when you are logged into the SESYNC RStudio server at [rstudio.sesync.org](https://rstudio.sesync.org/) with you sesync log-in credentials. 
+
+First load the `RPostgreSQL` library in order to access its functions. 
+
+```{r}
+library(RPostgreSQL)
+```
+
+Then we can use the `dbConnect()` function to establish a connection "object" to the database, which we will use to send and receive information from the database. 
+
+## Password
+
+In addition to the type, location, and name of the databse, we need to specify a username and password. The username is `palmergroup`. The password should be saved in a hidden file in your home directory so that it does not accidentally get shared. If you have the password saved as plain text in a file called `.pgpass`, you can read it in as character string using the `scan()` function:
+
+```{r pw}
+password <- scan(".pgpass", what="")
+```
+
+For better options on password handling, see the [PostgreSQL documentation](https://www.postgresql.org/docs/8.1/static/libpq-pgpass.html) or the [SESYNC Research Support FAQ page](https://collab.sesync.org/sites/support/_layouts/15/start.aspx#/Frequently%20Asked%20Questions/Connecting%20RStudio%20Server%20or%20Desktop%20to%20a%20database.aspx)
+
+## Connecting
+
+Once you have the password object in your R Environment, create a database connection using the `dbConnect()` function. (You can use any valid object name, it doesn't have to be `db`). 
+
+```{r}
+db <- dbConnect(PostgreSQL(), 
+                host = "sesync-postgis01.research.sesync.org",
+                dbname = "choptank", 
+                user = "palmergroup",
+                password = password)
+```
+
+# Tables
+
+If you want to read a whole table from the database into your R environment, you can use `dbReadTable()`. 
+
+```{r}
+samplingfeatures <- dbReadTable(db, c("odm2", "samplingfeatures"))
+```
+
+
+## dbListTables 
+
+This function will list all of the tables in the database. 
+
+```{r}
+dbListTables(db) 
+```
+
+Tables within the database are organized into **schemas**. There are extra tables besides the ODM2 schema in the choptank database e.g. to help deal with spatial information. 
+
+This is important because you need to refer to tables *within schemas* when making queries. 
+
+## dbListFields
+
+For example, the `dbListFields()` function will list the field names (i.e. column names) of a table. Refer to the name of the samplingfeatures table using both the schema name and the table name:
+
+```{r}
+dbListFields(conn = db, name = c("odm2", "samplingfeatures"))
+```
+
+
+## dbGetQuery
+
+`dbGetQuery()` is the main function to use to send SQL statements to the database. 
+
+If you are writing SQL commands, use `schema.table` to refer to tables:
+
+```{r, results='asis', warning=FALSE, eval=FALSE}
+dbGetQuery(db, "SELECT * FROM odm2.samplingfeatures LIMIT 10")
+```
+
+```{r, results='asis', warning=FALSE, echo=FALSE}
+sites <-  dbGetQuery(db, "SELECT * FROM odm2.samplingfeatures LIMIT 10")
+kable(sites)
+```
+
+Note that you will get an error if you try to `SELECT` from an empty table. 
+
+```{r, warning=FALSE, results='asis'}
+sites <- dbGetQuery(db, "SELECT * FROM odm2.samplingfeatures WHERE samplingfeaturetypecv = 'site'")
+```
+
+# dbDisconnect
+
+Disconnect at the end of your session to free up resources. 
+
+```{r}
+dbDisconnect(db)
+```
+
+# Writing SQL
+
+Send and receive information from the database using the `dbGetQuery()` function and a character string of SQL code. 
+
+For example, the whole units table seemed to not download from the [ODM2 page](http://vocabulary.odm2.org/units/). This SQL code would insert new values into the units table. When this statement was executed, a new unitsid was automatically created.
+
+```{r}
+sql <- "INSERT INTO odm2.units (unitstypecv, unitsabbreviation, unitsname) VALUES ('Time', 'min', 'Minute')"
+```
+
+If you have multiple lines of SQL this can get complicated to deal with line endings and such. 
+
+```{r, eval=FALSE}
+sql <- paste("SQL GOES HERE")
+
+sql <- gsub("\n", "", sql)
+
+dbGetQuery(db, sql)
+```
+
+For long SQL statements, save sql character string as a text file to see the whole thing not truncated in console
+
+```{r, eval=FALSE}
+write(sql, "sql.txt")
+```
+
+
+
+# Making new tables
+
+The following code creates a dataframe, writes that table to the database as a table called "test", reads the table, and then removes it. 
+
+```{r, eval = FALSE}
+testdf <- data.frame(a = "cat", b = "dog", c = "monkey")
+
+dbWriteTable(db, "test", testdf, row.names=FALSE)
+
+dbReadTable(db, "test")
+
+dbRemoveTable(db, "test")
+
+```
+
+**More resources**
+
+* http://www.win-vector.com/blog/2016/02/using-postgresql-in-r/
+* https://www.nceas.ucsb.edu/system/files/rpostgresql.txt
+
+
+
