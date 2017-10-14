@@ -220,49 +220,719 @@ div.tocify {
 </div>
 
 
+<p><strong>First load the necessary libraries</strong></p>
+<p>If the library is not installed on your computer, use <code>install.packages()</code>.</p>
+<pre class="r"><code>library(uuid) # unique ids
+library(RPostgreSQL) # database
+library(knitr)
+library(readr)
+library(DT)
+library(lubridate)</code></pre>
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
-<p>This is a guide for inserting dissolved gas measurements into the choptank database. The general format of this can likely be adapted for other types of results that come from taking a water sample and then running a laboratory analysis to get results.</p>
-<p>The starting point for using this worksheet is having a spreadsheet/data frame of sample results where each row corresponds to one sample (i.e. “tidy data”). There should be columns containing this information about each sample:</p>
-<ul>
-<li><strong>samplingfeaturecode</strong>: a short identifier for the sample specimen</li>
-<li><strong>datetime</strong>: properly formatted date and time of sample collection</li>
-<li><strong>method</strong>: the name or code of the method used to collect the sample (should already exist in the <strong>Methods</strong> table)</li>
-<li><strong>datavalue</strong>: the result value</li>
-<li><strong>resulttype</strong>: the type of result from the <a href="http://vocabulary.odm2.org/resulttype/">result type CV</a>, (likely “measurement”)</li>
-<li><p>metadata type information</p>
-<ul>
-<li><strong>censorcodeCV</strong>: actual value (“notCensored”) or otherwise (<a href="http://vocabulary.odm2.org/censorcode/">censor codes</a>)</li>
-<li><strong>qualitycodeCV</strong>: is the data quality good, bad, marginal, unknown, none</li>
-<li><strong>aggregationstatisticCV</strong>: what time period is the result associated with (<a href="http://vocabulary.odm2.org/aggregationstatistic/">aggregation statistic CV</a>), likely “sporadic” for water quality samples</li>
-<li><strong>timeaggregationinterval</strong>: a number</li>
-<li><strong>timeaggregationintervalunits</strong>:</li>
-<li><strong>variable</strong>:</li>
-<li><strong>units</strong>:</li>
-<li><strong>processinglevel</strong>: raw, quality controlled, derived, interpreted, etc. (see <a href="https://github.com/ODM2/ODM2/blob/master/doc/ODM2Docs/core_processinglevels.md">odm2 documentation</a> for description)</li>
-<li><strong>sampledmedium</strong>: air, soil, water, etc. (choose from the <a href="http://vocabulary.odm2.org/medium/">medium CV</a>)</li>
-<li><strong>valuecount</strong>: number of data values in the result (likely 1)</li>
-</ul></li>
-<li><strong>samplingfeaturedescription</strong>: (optional) a longer description of the sample</li>
-<li><p><strong>relatedfeature</strong>: (optional) the short identifier of the site the sample was collected at, to put in the related features table.</p></li>
-</ul>
-<div id="load-the-necessary-libraries" class="section level2">
-<h2>Load the necessary libraries</h2>
-<p>If the library is not installed on your computer, use <code>install.packages()</code>.</p>
-<pre class="r"><code>library(rgdal) # spatial data types
-library(rgeos) # spatial 
-library(sf) # spatial
-library(uuid) # unique ids
-library(RPostgreSQL) # database
-library(knitr)</code></pre>
+<p>This is a guide for inserting dissolved gas measurements into the choptank database. The general format of this can be adapted for other types of results that come from taking a water sample and then running a laboratory analysis to get results.</p>
+<p>The general steps are:</p>
+<ol style="list-style-type: decimal">
+<li>add the sample to the sampling features list, and make it a related feature of the site it was sampled from</li>
+<li>update the actions table for collecting the sample</li>
+<li>make a link between the action and sample by updating the feature action table</li>
+<li>make a new result in the results table associated with the feature action</li>
+<li>insert measurement results and measurement result values, associated with the result id</li>
+</ol>
+<p>If the results are more than one value (e.g. a spectra or multiple ions), there will be multiple rows in the measurement result values table.</p>
 </div>
-<div id="connect-to-the-database" class="section level2">
-<h2>Connect to the database</h2>
-<p>Use <code>dbConnect()</code> to create an object called <code>db</code> for interacting with the database. To get familiar with the database, see the document on general database interactions.</p>
-</div>
-</div>
-<div id="new-methods" class="section level1">
-<h1>New methods</h1>
+<div id="new-data" class="section level1">
+<h1>New data</h1>
+<p>The starting point for using this worksheet is having a spreadsheet/data frame of sample results where each row corresponds to one sample (i.e. “tidy data”). Each result is the result of a “feature action”, in this case taking a water/gas sample for headspace analysis.</p>
+<p>Read in a file of results to be entered</p>
+<p>Each row of the data frame corresponds to one sample, identified by the <strong>Exetainer_ID</strong>. The date and time are there but not formatted correctly. The data values are in the <code>orig_liq_conc</code> column.</p>
+<p>See ODM2 documentation on <a href="https://github.com/ODM2/ODM2/blob/master/doc/ODM2Docs/bp_handlingdatesandtimes.md">handling dates and times</a> and <a href="https://github.com/ODM2/ODM2/blob/master/doc/ODM2Docs/bp_unknowndates.md">unknown dates</a></p>
+<pre class="r"><code>kable(ch4_data)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Field_sample_date</th>
+<th align="left">Time</th>
+<th align="left">Site</th>
+<th align="right">orig_liq_conc</th>
+<th align="right">ch4_ppm</th>
+<th align="right">avg_air_ch4_ppm</th>
+<th align="left">Exetainer_ID</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">October 6, 2017</td>
+<td align="left">60900</td>
+<td align="left">QB</td>
+<td align="right">103.5092308</td>
+<td align="right">2846.92702</td>
+<td align="right">3.095674</td>
+<td align="left">KLH 215</td>
+</tr>
+<tr class="even">
+<td align="left">October 6, 2017</td>
+<td align="left">60900</td>
+<td align="left">QB</td>
+<td align="right">102.6650550</td>
+<td align="right">2823.70999</td>
+<td align="right">3.095674</td>
+<td align="left">KLH 216</td>
+</tr>
+<tr class="odd">
+<td align="left">October 6, 2017</td>
+<td align="left">60900</td>
+<td align="left">QB</td>
+<td align="right">83.3063275</td>
+<td align="right">2291.29477</td>
+<td align="right">3.095674</td>
+<td align="left">KLH 217</td>
+</tr>
+<tr class="even">
+<td align="left">October 6, 2017</td>
+<td align="left">48600</td>
+<td align="left">JU</td>
+<td align="right">5.9112508</td>
+<td align="right">162.83027</td>
+<td align="right">5.114133</td>
+<td align="left">KLH 246</td>
+</tr>
+<tr class="odd">
+<td align="left">October 6, 2017</td>
+<td align="left">48600</td>
+<td align="left">JU</td>
+<td align="right">4.6204552</td>
+<td align="right">127.33004</td>
+<td align="right">5.114133</td>
+<td align="left">KLH 244</td>
+</tr>
+<tr class="even">
+<td align="left">October 6, 2017</td>
+<td align="left">48600</td>
+<td align="left">JU</td>
+<td align="right">6.7153926</td>
+<td align="right">184.94626</td>
+<td align="right">5.114133</td>
+<td align="left">KLH 245</td>
+</tr>
+<tr class="odd">
+<td align="left">August 6, 2017</td>
+<td align="left">NA</td>
+<td align="left">Trailer ditch</td>
+<td align="right">5.1864294</td>
+<td align="right">142.88303</td>
+<td align="right">4.858584</td>
+<td align="left">x002</td>
+</tr>
+<tr class="even">
+<td align="left">August 6, 2017</td>
+<td align="left">NA</td>
+<td align="left">QB</td>
+<td align="right">6.9949005</td>
+<td align="right">192.62068</td>
+<td align="right">4.858584</td>
+<td align="left">x003</td>
+</tr>
+<tr class="odd">
+<td align="left">August 6, 2017</td>
+<td align="left">NA</td>
+<td align="left">QB</td>
+<td align="right">6.1215325</td>
+<td align="right">168.60079</td>
+<td align="right">4.858584</td>
+<td align="left">x004</td>
+</tr>
+<tr class="even">
+<td align="left">August 6, 2017</td>
+<td align="left">NA</td>
+<td align="left">DankBay</td>
+<td align="right">2.8559584</td>
+<td align="right">78.78904</td>
+<td align="right">4.858584</td>
+<td align="left">x005</td>
+</tr>
+<tr class="odd">
+<td align="left">August 6, 2017</td>
+<td align="left">NA</td>
+<td align="left">DankBay</td>
+<td align="right">2.9259732</td>
+<td align="right">80.71462</td>
+<td align="right">4.858584</td>
+<td align="left">x006</td>
+</tr>
+<tr class="even">
+<td align="left">August 6, 2017</td>
+<td align="left">NA</td>
+<td align="left">Ditch by Tiger9</td>
+<td align="right">8.8789524</td>
+<td align="right">244.43700</td>
+<td align="right">4.858584</td>
+<td align="left">x007</td>
+</tr>
+<tr class="odd">
+<td align="left">August 6, 2017</td>
+<td align="left">NA</td>
+<td align="left">JU</td>
+<td align="right">3.3783692</td>
+<td align="right">93.15669</td>
+<td align="right">4.858584</td>
+<td align="left">x008</td>
+</tr>
+<tr class="even">
+<td align="left">August 6, 2017</td>
+<td align="left">NA</td>
+<td align="left">JU</td>
+<td align="right">3.3752390</td>
+<td align="right">93.07060</td>
+<td align="right">4.858584</td>
+<td align="left">x009</td>
+</tr>
+<tr class="odd">
+<td align="left">August 6, 2017</td>
+<td align="left">NA</td>
+<td align="left">TA</td>
+<td align="right">7.4000167</td>
+<td align="right">203.76243</td>
+<td align="right">4.858584</td>
+<td align="left">x010</td>
+</tr>
+<tr class="even">
+<td align="left">August 6, 2017</td>
+<td align="left">NA</td>
+<td align="left">TA</td>
+<td align="right">7.0185962</td>
+<td align="right">193.27237</td>
+<td align="right">4.858584</td>
+<td align="left">x011</td>
+</tr>
+<tr class="odd">
+<td align="left">August 6, 2017</td>
+<td align="left">NA</td>
+<td align="left">TB</td>
+<td align="right">2.4690259</td>
+<td align="right">68.14739</td>
+<td align="right">4.858584</td>
+<td align="left">x012</td>
+</tr>
+<tr class="even">
+<td align="left">August 6, 2017</td>
+<td align="left">NA</td>
+<td align="left">TB</td>
+<td align="right">2.3649464</td>
+<td align="right">65.28493</td>
+<td align="right">4.858584</td>
+<td align="left">x013</td>
+</tr>
+<tr class="odd">
+<td align="left">August 6, 2017</td>
+<td align="left">NA</td>
+<td align="left">BB</td>
+<td align="right">14.2034619</td>
+<td align="right">390.87482</td>
+<td align="right">4.858584</td>
+<td align="left">x014</td>
+</tr>
+<tr class="even">
+<td align="left">August 6, 2017</td>
+<td align="left">NA</td>
+<td align="left">BB</td>
+<td align="right">14.8522293</td>
+<td align="right">408.71760</td>
+<td align="right">4.858584</td>
+<td align="left">x015</td>
+</tr>
+<tr class="odd">
+<td align="left">Sept 10, 2017</td>
+<td align="left">54000</td>
+<td align="left">BB</td>
+<td align="right">23.3037804</td>
+<td align="right">641.62778</td>
+<td align="right">14.276672</td>
+<td align="left">KH 090</td>
+</tr>
+<tr class="even">
+<td align="left">Sept 10, 2017</td>
+<td align="left">54000</td>
+<td align="left">BB</td>
+<td align="right">23.3037804</td>
+<td align="right">641.62778</td>
+<td align="right">14.276672</td>
+<td align="left">KH 090</td>
+</tr>
+<tr class="odd">
+<td align="left">Sept 10, 2017</td>
+<td align="left">42120</td>
+<td align="left">QB</td>
+<td align="right">17.2839830</td>
+<td align="right">476.06774</td>
+<td align="right">14.276672</td>
+<td align="left">KH 079</td>
+</tr>
+<tr class="even">
+<td align="left">Sept 10, 2017</td>
+<td align="left">42120</td>
+<td align="left">QB</td>
+<td align="right">17.2839830</td>
+<td align="right">476.06774</td>
+<td align="right">14.276672</td>
+<td align="left">KH 079</td>
+</tr>
+<tr class="odd">
+<td align="left">Sept 13, 2017</td>
+<td align="left">43500</td>
+<td align="left">DB</td>
+<td align="right">3.2991773</td>
+<td align="right">90.98577</td>
+<td align="right">5.000000</td>
+<td align="left">KH 138</td>
+</tr>
+<tr class="even">
+<td align="left">Sept 13, 2017</td>
+<td align="left">43500</td>
+<td align="left">DB</td>
+<td align="right">3.2991773</td>
+<td align="right">90.98577</td>
+<td align="right">5.000000</td>
+<td align="left">KH 138</td>
+</tr>
+<tr class="odd">
+<td align="left">Sept 13, 2017</td>
+<td align="left">56400</td>
+<td align="left">JA</td>
+<td align="right">10.6577887</td>
+<td align="right">293.36667</td>
+<td align="right">5.000000</td>
+<td align="left">KH 110</td>
+</tr>
+<tr class="even">
+<td align="left">Sept 13, 2017</td>
+<td align="left">56400</td>
+<td align="left">JA</td>
+<td align="right">10.6577887</td>
+<td align="right">293.36667</td>
+<td align="right">5.000000</td>
+<td align="left">KH 110</td>
+</tr>
+<tr class="odd">
+<td align="left">Sept 13, 2017</td>
+<td align="left">56940</td>
+<td align="left">JB</td>
+<td align="right">4.8406580</td>
+<td align="right">133.38049</td>
+<td align="right">5.000000</td>
+<td align="left">KH 125</td>
+</tr>
+<tr class="even">
+<td align="left">Sept 13, 2017</td>
+<td align="left">56940</td>
+<td align="left">JB</td>
+<td align="right">4.8406580</td>
+<td align="right">133.38049</td>
+<td align="right">5.000000</td>
+<td align="left">KH 125</td>
+</tr>
+<tr class="odd">
+<td align="left">Sept 13, 2017</td>
+<td align="left">45600</td>
+<td align="left">Tiny Bay</td>
+<td align="right">14.0156328</td>
+<td align="right">385.71610</td>
+<td align="right">5.000000</td>
+<td align="left">KH 094</td>
+</tr>
+<tr class="even">
+<td align="left">Sept 13, 2017</td>
+<td align="left">45600</td>
+<td align="left">Tiny Bay</td>
+<td align="right">14.0156328</td>
+<td align="right">385.71610</td>
+<td align="right">5.000000</td>
+<td align="left">KH 094</td>
+</tr>
+<tr class="odd">
+<td align="left">Sept 20, 2017</td>
+<td align="left">NA</td>
+<td align="left">DK</td>
+<td align="right">13.3364990</td>
+<td align="right">367.12015</td>
+<td align="right">6.641029</td>
+<td align="left">KH 109</td>
+</tr>
+<tr class="even">
+<td align="left">Sept 20, 2017</td>
+<td align="left">NA</td>
+<td align="left">outflow site WP 150</td>
+<td align="right">6.7765458</td>
+<td align="right">186.67982</td>
+<td align="right">6.148641</td>
+<td align="left">KH 127</td>
+</tr>
+<tr class="odd">
+<td align="left">Sept 20, 2017</td>
+<td align="left">NA</td>
+<td align="left">outflow site WP 150</td>
+<td align="right">3.1084689</td>
+<td align="right">85.79819</td>
+<td align="right">6.148641</td>
+<td align="left">KH 135</td>
+</tr>
+<tr class="even">
+<td align="left">Sept 20, 2017</td>
+<td align="left">NA</td>
+<td align="left">TB</td>
+<td align="right">34.7279083</td>
+<td align="right">955.56435</td>
+<td align="right">9.141736</td>
+<td align="left">KH 153</td>
+</tr>
+<tr class="odd">
+<td align="left">Sept 20, 2017</td>
+<td align="left">NA</td>
+<td align="left">TA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">8.083103</td>
+<td align="left">KH 160</td>
+</tr>
+<tr class="even">
+<td align="left">Sept 20, 2017</td>
+<td align="left">NA</td>
+<td align="left">TA</td>
+<td align="right">78.3194975</td>
+<td align="right">2154.39322</td>
+<td align="right">8.083103</td>
+<td align="left">KH 161</td>
+</tr>
+<tr class="odd">
+<td align="left">Sept 20, 2017</td>
+<td align="left">NA</td>
+<td align="left">TA</td>
+<td align="right">78.3194975</td>
+<td align="right">2154.39322</td>
+<td align="right">8.083103</td>
+<td align="left">KH 161</td>
+</tr>
+<tr class="even">
+<td align="left">Sept 20, 2017</td>
+<td align="left">NA</td>
+<td align="left">DK</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">6.641029</td>
+<td align="left">KH 165</td>
+</tr>
+<tr class="odd">
+<td align="left">Sept 20, 2017</td>
+<td align="left">NA</td>
+<td align="left">ND</td>
+<td align="right">2.8923485</td>
+<td align="right">79.88201</td>
+<td align="right">6.702701</td>
+<td align="left">KH 166</td>
+</tr>
+<tr class="even">
+<td align="left">Sept 20, 2017</td>
+<td align="left">NA</td>
+<td align="left">ND</td>
+<td align="right">4.9047795</td>
+<td align="right">135.22908</td>
+<td align="right">6.702701</td>
+<td align="left">KH 167</td>
+</tr>
+<tr class="odd">
+<td align="left">Sept 20, 2017</td>
+<td align="left">NA</td>
+<td align="left">ND</td>
+<td align="right">4.9047795</td>
+<td align="right">135.22908</td>
+<td align="right">6.702701</td>
+<td align="left">KH 167</td>
+</tr>
+<tr class="even">
+<td align="left">Sept 20, 2017</td>
+<td align="left">NA</td>
+<td align="left">outflow site WP 150</td>
+<td align="right">6.9726786</td>
+<td align="right">192.07398</td>
+<td align="right">6.148641</td>
+<td align="left">KH 170</td>
+</tr>
+<tr class="odd">
+<td align="left">Sept 20, 2017</td>
+<td align="left">NA</td>
+<td align="left">outflow site WP 150</td>
+<td align="right">6.9726786</td>
+<td align="right">192.07398</td>
+<td align="right">6.148641</td>
+<td align="left">KH 170</td>
+</tr>
+<tr class="even">
+<td align="left">Sept 20, 2017</td>
+<td align="left">NA</td>
+<td align="left">QB</td>
+<td align="right">41.8328927</td>
+<td align="right">1150.94318</td>
+<td align="right">8.608056</td>
+<td align="left">KH 183</td>
+</tr>
+<tr class="odd">
+<td align="left">Sept 20, 2017</td>
+<td align="left">NA</td>
+<td align="left">QB</td>
+<td align="right">46.1935233</td>
+<td align="right">1270.87183</td>
+<td align="right">8.608056</td>
+<td align="left">KH 186</td>
+</tr>
+<tr class="even">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">ND</td>
+<td align="right">3.0436674</td>
+<td align="right">83.97977</td>
+<td align="right">5.423851</td>
+<td align="left">KH 022</td>
+</tr>
+<tr class="odd">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">ND</td>
+<td align="right">2.4674443</td>
+<td align="right">68.13214</td>
+<td align="right">5.423851</td>
+<td align="left">KH 022</td>
+</tr>
+<tr class="even">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">ND</td>
+<td align="right">1.7472398</td>
+<td align="right">48.32465</td>
+<td align="right">5.423851</td>
+<td align="left">KH 024</td>
+</tr>
+<tr class="odd">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">ND</td>
+<td align="right">1.7168354</td>
+<td align="right">47.48845</td>
+<td align="right">5.423851</td>
+<td align="left">KH 024</td>
+</tr>
+<tr class="even">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">DB</td>
+<td align="right">0.6099632</td>
+<td align="right">17.00094</td>
+<td align="right">4.510260</td>
+<td align="left">KH 017</td>
+</tr>
+<tr class="odd">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">DB</td>
+<td align="right">0.6082906</td>
+<td align="right">16.95494</td>
+<td align="right">4.510260</td>
+<td align="left">KH 016</td>
+</tr>
+<tr class="even">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">BB</td>
+<td align="right">1.6964118</td>
+<td align="right">47.16329</td>
+<td align="right">10.157905</td>
+<td align="left">KH 015</td>
+</tr>
+<tr class="odd">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">BB</td>
+<td align="right">1.3636697</td>
+<td align="right">38.01202</td>
+<td align="right">10.157905</td>
+<td align="left">KH 014</td>
+</tr>
+<tr class="even">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">JA</td>
+<td align="right">0.7019514</td>
+<td align="right">19.51428</td>
+<td align="right">4.178613</td>
+<td align="left">KH 011</td>
+</tr>
+<tr class="odd">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">JA</td>
+<td align="right">0.7500396</td>
+<td align="right">20.83683</td>
+<td align="right">4.178613</td>
+<td align="left">KH 012</td>
+</tr>
+<tr class="even">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">AnnsBay</td>
+<td align="right">1.6510882</td>
+<td align="right">45.68023</td>
+<td align="right">5.423851</td>
+<td align="left">KH 010</td>
+</tr>
+<tr class="odd">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">JB</td>
+<td align="right">0.3238804</td>
+<td align="right">9.17857</td>
+<td align="right">5.423851</td>
+<td align="left">KH 009</td>
+</tr>
+<tr class="even">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">JC</td>
+<td align="right">1.4443638</td>
+<td align="right">39.99477</td>
+<td align="right">5.423851</td>
+<td align="left">KH 013</td>
+</tr>
+<tr class="odd">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">QB</td>
+<td align="right">15.6461581</td>
+<td align="right">430.51661</td>
+<td align="right">4.136238</td>
+<td align="left">KH 004</td>
+</tr>
+<tr class="even">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">QB</td>
+<td align="right">17.5549146</td>
+<td align="right">483.01236</td>
+<td align="right">4.136238</td>
+<td align="left">KH 005</td>
+</tr>
+<tr class="odd">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">QB</td>
+<td align="right">20.2653010</td>
+<td align="right">557.55502</td>
+<td align="right">4.136238</td>
+<td align="left">KH 007</td>
+</tr>
+<tr class="even">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">QB</td>
+<td align="right">22.0407402</td>
+<td align="right">606.38420</td>
+<td align="right">4.136238</td>
+<td align="left">KH 006</td>
+</tr>
+<tr class="odd">
+<td align="left">July 30, 2017</td>
+<td align="left">NA</td>
+<td align="left">JB</td>
+<td align="right">0.6124581</td>
+<td align="right">17.11521</td>
+<td align="right">5.423851</td>
+<td align="left">KH 008</td>
+</tr>
+</tbody>
+</table>
+<p>There is a lot more information needed to provide metadata about these samples. This is the information needed:</p>
+<table>
+<colgroup>
+<col width="12%"></col>
+<col width="87%"></col>
+</colgroup>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>sampling feature code</strong></td>
+<td>a short identifier for the sample specimen</td>
+</tr>
+<tr class="even">
+<td><strong>datetime</strong></td>
+<td>properly formatted date and time of sample collection</td>
+</tr>
+<tr class="odd">
+<td><strong>method</strong></td>
+<td>the name or code of the method used to collect the sample (should already exist in the <strong>Methods</strong> table)</td>
+</tr>
+<tr class="even">
+<td><strong>datavalue</strong></td>
+<td>the result value (numeric)</td>
+</tr>
+<tr class="odd">
+<td><strong>resulttype</strong></td>
+<td>the <a href="http://vocabulary.odm2.org/resulttype/">result type</a>, likely “measurement”</td>
+</tr>
+<tr class="even">
+<td><strong>censorcodeCV</strong></td>
+<td>refer to <a href="http://vocabulary.odm2.org/censorcode/">censor codes</a>, “notCensored” if the actual value</td>
+</tr>
+<tr class="odd">
+<td><strong>qualitycodeCV</strong></td>
+<td>is the data quality good, bad, marginal, unknown, none</td>
+</tr>
+<tr class="even">
+<td><strong>aggregation statistic</strong></td>
+<td>what time period is the result associated with according to the <a href="http://vocabulary.odm2.org/aggregationstatistic/">aggregation statistic CV</a>, e.g. “sporadic”</td>
+</tr>
+<tr class="odd">
+<td><strong>time aggregation interval</strong></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>time aggregation intervalunits</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>variable</strong></td>
+<td>the variable or code of the variable used to collect the sample (should already exist in the <strong>variables</strong> table)</td>
+</tr>
+<tr class="even">
+<td><strong>units</strong></td>
+<td>units, which should already exist in the <a href="http://vocabulary.odm2.org/units/">units</a> table</td>
+</tr>
+<tr class="odd">
+<td><strong>processing level</strong></td>
+<td>raw, quality controlled, derived, interpreted, etc. <a href="https://github.com/ODM2/ODM2/blob/master/doc/ODM2Docs/core_processinglevels.md">odm2 documentation</a></td>
+</tr>
+<tr class="even">
+<td><strong>sampledmedium</strong></td>
+<td>air, soil, water, etc. from the <a href="http://vocabulary.odm2.org/medium/">medium CV</a></td>
+</tr>
+<tr class="odd">
+<td><strong>value count</strong></td>
+<td>number of data values in the result (should be 1)</td>
+</tr>
+<tr class="even">
+<td><strong>sampling feature description</strong></td>
+<td>(optional but encouraged) a longer description of the sample</td>
+</tr>
+<tr class="odd">
+<td><strong>related feature</strong></td>
+<td>(optional but encouraged) the short identifier of the site the sample was collected at, to put in the related features table.</td>
+</tr>
+</tbody>
+</table>
+<div id="methods" class="section level2">
+<h2>Methods</h2>
 <p>If your method for sample collection is not already in the database, add it to the methods table.</p>
 <pre class="r"><code>methods &lt;- dbGetQuery(db, &quot;SELECT * FROM odm2.methods&quot;)
 kable(methods[,1:4])</code></pre>
@@ -277,79 +947,198 @@ kable(methods[,1:4])</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="right">2</td>
+<td align="right">12</td>
 <td align="left">specimenCollection</td>
-<td align="left">headspace air</td>
-<td align="left">Collection of air gas sample</td>
-</tr>
-<tr class="even">
-<td align="right">3</td>
-<td align="left">specimenAnalysis</td>
-<td align="left">GC</td>
-<td align="left">Gas chromatography</td>
-</tr>
-<tr class="odd">
-<td align="right">4</td>
-<td align="left">siteVisit</td>
-<td align="left">field site visit</td>
-<td align="left">field site visit</td>
-</tr>
-<tr class="even">
-<td align="right">5</td>
-<td align="left">observation</td>
-<td align="left">water depth</td>
-<td align="left">water depth measurement</td>
-</tr>
-<tr class="odd">
-<td align="right">7</td>
-<td align="left">observation</td>
-<td align="left">water temp</td>
-<td align="left">measure water temperature</td>
-</tr>
-<tr class="even">
-<td align="right">8</td>
-<td align="left">observation</td>
-<td align="left">air temp</td>
-<td align="left">measure air temperature</td>
-</tr>
-<tr class="odd">
-<td align="right">9</td>
-<td align="left">specimenCollection</td>
-<td align="left">water isotope sample</td>
-<td align="left">collect water isotope sample</td>
-</tr>
-<tr class="even">
-<td align="right">10</td>
-<td align="left">specimenCollection</td>
-<td align="left">TOC water sample</td>
-<td align="left">collect water sample for TOC analysis</td>
-</tr>
-<tr class="odd">
-<td align="right">11</td>
-<td align="left">specimenCollection</td>
-<td align="left">anion water sample</td>
-<td align="left">collect water sample for anion analysis</td>
-</tr>
-<tr class="even">
-<td align="right">1</td>
-<td align="left">specimenCollection</td>
-<td align="left">headspace dissolved gas</td>
-<td align="left">Surface water dissolved gas sampling</td>
-</tr>
-<tr class="odd">
-<td align="right">6</td>
-<td align="left">observation</td>
-<td align="left">inundation</td>
-<td align="left">water presence observation</td>
+<td align="left">HS</td>
+<td align="left">Headspace dissolved gas</td>
 </tr>
 </tbody>
 </table>
-<div id="new-data" class="section level2">
-<h2>New data</h2>
+<p>Describe the new method here. Method type should use the <a href="http://vocabulary.odm2.org/methodtype/">method type CV</a>.</p>
+<pre class="r"><code>methodtypecv = &quot;specimenCollection&quot;
+methodcode = &quot;HS&quot;
+methodname = &quot;Headspace dissolved gas&quot;
+methoddescription = &quot;NEON protocol for headspace dissolved gas sampling followed by GC analysis and calculation of original gas concentration&quot;
+methodlink = NA
+organizationid = NA</code></pre>
+<p>Make an SQL statement to put new method in database using <code>sprintf()</code> to put the variables entered above into the character string.</p>
+<pre class="r"><code>sql &lt;- sprintf(&quot;INSERT INTO odm2.methods 
+        (methodtypecv, methodcode, methodname, methoddescription) 
+        VALUES
+        ('%s', '%s', '%s', '%s')&quot;, 
+        methodtypecv, methodcode, methodname, methoddescription)
+sql</code></pre>
+<pre><code>## [1] &quot;INSERT INTO odm2.methods \n        (methodtypecv, methodcode, methodname, methoddescription) \n        VALUES\n        ('specimenCollection', 'HS', 'Headspace dissolved gas', 'NEON protocol for headspace dissolved gas sampling followed by GC analysis and calculation of original gas concentration')&quot;</code></pre>
+<p>The code above has line breaks in it to help readability. remove the line breaks in the code.</p>
+<pre class="r"><code>sql &lt;- gsub(&quot;\n&quot;, &quot;&quot;, sql)
+sql</code></pre>
+<pre><code>## [1] &quot;INSERT INTO odm2.methods         (methodtypecv, methodcode, methodname, methoddescription)         VALUES        ('specimenCollection', 'HS', 'Headspace dissolved gas', 'NEON protocol for headspace dissolved gas sampling followed by GC analysis and calculation of original gas concentration')&quot;</code></pre>
+<p>Then put in the database.</p>
+<pre class="r"><code>dbGetQuery(db, sql) </code></pre>
+<p>Get the methodid corresponding to these samples from the methods table.</p>
+<pre class="r"><code>methodid &lt;- dbGetQuery(db, &quot;SELECT methodid FROM odm2.methods WHERE methodcode = 'HS'&quot;)</code></pre>
 </div>
-<div id="restructure-to-match-tables-in-database" class="section level2">
-<h2>Restructure to match tables in database</h2>
+<div id="variables" class="section level2">
+<h2>Variables</h2>
+<p>Use variable names from the <a href="http://vocabulary.odm2.org/variablename/">variables CV</a> if possible. See if the variable already exists in the database variables table, otherwise add it.</p>
+<pre class="r"><code>vars &lt;- dbGetQuery(db, &quot;SELECT * FROM odm2.variables&quot;)
+kable(vars[,])</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">variableid</th>
+<th align="left">variabletypecv</th>
+<th align="left">variablecode</th>
+<th align="left">variablenamecv</th>
+<th align="left">variabledefinition</th>
+<th align="left">speciationcv</th>
+<th align="right">nodatavalue</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">13</td>
+<td align="left">WaterQuality</td>
+<td align="left">methaneDissolved</td>
+<td align="left">Methane, dissolved</td>
+<td align="left">Dissolved Methane (CH4)</td>
+<td align="left">NA</td>
+<td align="right">-9999</td>
+</tr>
+</tbody>
+</table>
+<p>SQL statement to add new variable</p>
+<pre class="r"><code>sql &lt;- &quot;INSERT INTO odm2.variables 
+        (variabletypecv, variablecode, variablenamecv, variabledefinition, nodatavalue) 
+        VALUES 
+        ('WaterQuality', 'methaneDissolved_test', 'Methane, dissolved', 'Dissolved Methane (CH4)', '-9999')&quot;
+
+sql &lt;- gsub(&quot;\n&quot;, &quot;&quot;, sql)
+
+dbGetQuery(db, sql)</code></pre>
 </div>
+<div id="units" class="section level2">
+<h2>Units</h2>
+<p>Look at the <a href="http://vocabulary.odm2.org/units/">units table</a> from ODM2 to find your units. Make sure that it is in the database and find the units ID.</p>
+<pre class="r"><code>dbGetQuery(db, &quot;SELECT * FROM odm2.units WHERE unitsname = 'Micromole per Liter'&quot;)</code></pre>
+<pre><code>##   unitsid                    unitstypecv unitsabbreviation
+## 1     263 Concentration count per volume  \xb5mol/L; \xb5M
+##             unitsname unitslink
+## 1 Micromole per Liter      &lt;NA&gt;</code></pre>
+<p>You may need to add new units to the units table if it is not there.</p>
+<pre class="r"><code>sql &lt;- &quot;INSERT INTO odm2.units (unitstypecv, unitsabbreviation, unitsname) VALUES ('Time', 'min', 'Minute')&quot;
+dbGetQuery(db, sql)</code></pre>
+</div>
+<div id="datetime-formatting" class="section level2">
+<h2>DateTime formatting</h2>
+<p>Dates and times should be combined into one column that is the proper date time format. Fix this in the data sheet.</p>
+<p>For now, just assign all times as midnight.</p>
+<p>The <a href="https://cran.r-project.org/web/packages/lubridate/vignettes/lubridate.html">lubrdiate</a> package can help with date time formatting.</p>
+<p>Sept doesn’t seem to be recognized</p>
+<pre class="r"><code>ch4_data$Field_sample_date &lt;- gsub(pattern = &quot;Sept&quot;, replacement = &quot;September&quot;,
+                                   ch4_data$Field_sample_date)</code></pre>
+<p>This will be the begindatetime in the actions table.</p>
+<pre class="r"><code>ch4_data$date &lt;- strptime(ch4_data$Field_sample_date, 
+                          format = &quot;%B %d, %Y&quot;,
+                          tz = &quot;&quot;)</code></pre>
+<p>utc offset</p>
+<pre class="r"><code>utcoffset &lt;- format(Sys.time(), &quot;%z&quot;)
+utcoffset &lt;- as.integer(substr(utcoffset, 1,3))</code></pre>
+</div>
+<div id="sample-description" class="section level2">
+<h2>Sample description</h2>
+<p>Concatenate information from a few columns to make informative sample descriptions</p>
+<pre class="r"><code>ch4_data$sampledescription &lt;- paste(&quot;HS sample&quot;,
+                                    ch4_data$Exetainer_ID, &quot;collected at&quot;, 
+                                    ch4_data$Site, &quot;on&quot;,
+                                    as.character(ch4_data$date))</code></pre>
+</div>
+<div id="metadata-about-samples" class="section level2">
+<h2>metadata about samples</h2>
+<pre class="r"><code>methodcode = &quot;HS&quot;
+variablecode = &quot;methaneDissolved&quot;
+unitsname = &quot;Micromole per Liter&quot;
+sampledmedium = &quot;liquidAqueous&quot;</code></pre>
+<p>Other metadata</p>
+<blockquote>
+<p>processling level is 2 for headspace dissolved gas measurements since they are derived from other measurements</p>
+</blockquote>
+<pre class="r"><code>dbGetQuery(db, &quot;SELECT * FROM odm2.units WHERE unitsname = 'Minute'&quot;)</code></pre>
+<pre><code>##   unitsid unitstypecv unitsabbreviation unitsname unitslink
+## 1    1157        Time               min    Minute      &lt;NA&gt;</code></pre>
+<pre class="r"><code>resulttypecv = &quot;measurement&quot;
+censorcodecv = &quot;notCensored&quot;
+qualitycodecv = &quot;unknown&quot;
+aggregationstatisticcv = &quot;sporadic&quot;
+timeaggregationinterval = 1 # assume 1 minute
+timeaggregationintervalunitsid = 1157 # minute
+processlinglevel = 2
+valuecount = 1</code></pre>
+<pre class="r"><code>unitsid &lt;- dbGetQuery(db, &quot;SELECT unitsid FROM odm2.units WHERE unitsname = 'Micromole per Liter'&quot;)</code></pre>
+</div>
+</div>
+<div id="inserting-into-database" class="section level1">
+<h1>Inserting into database</h1>
+<p>Construct an SQL statement to update all of the appropriate tables for a sample</p>
+<ol style="list-style-type: decimal">
+<li>add the sample to the sampling features list, and make it a related feature of the site it was sampled from</li>
+<li>update the actions table for collecting the sample</li>
+<li>make a link between the action and sample by updating the feature action table</li>
+<li>make a new result in the results table associated with the feature action</li>
+<li>insert measurement results and measurement result values, associated with the result id</li>
+</ol>
+<div id="sql-craziness" class="section level2">
+<h2>Sql craziness</h2>
+<pre class="r"><code>sql &lt;- sprintf(
+'WITH 
+newsf AS (
+INSERT INTO odm2.samplingfeatures
+(samplingfeatureuuid, samplingfeaturetypecv, samplingfeaturecode, samplingfeaturedescription)
+VALUES (\'%s\', \'%s\', \'%s\', \'%s\')
+RETURNING samplingfeatureid),
+newrelation AS (
+INSERT INTO odm2.relatedfeatures
+(samplingfeatureid, relationshiptypecv, relatedfeatureid)
+VALUES ((SELECT newsf.samplingfeatureid FROM newsf), \'%s\', (SELECT samplingfeatureid FROM odm2.samplingfeatures WHERE samplingfeaturecode = \'%s\'))),
+newact AS (
+INSERT INTO odm2.actions
+(actiontypecv, methodid, begindatetime, begindatetimeutcoffset)
+VALUES
+(\'%s\', (SELECT methodid FROM odm2.methods WHERE methodcode = \'%s\'), \'%s\', \'%s\')
+RETURNING actionid),
+newfa AS (
+INSERT into odm2.featureactions
+(samplingfeatureid, actionid)
+VALUES ((SELECT newsf.samplingfeatureid FROM newsf), (SELECT newact.actionid FROM newact))
+RETURNING featureactionid),
+newresult AS (
+INSERT INTO odm2.results
+(featureactionid, resultuuid, resulttypecv, variableid, unitsid, processinglevelid, sampledmediumcv, valuecount)
+VALUES ((SELECT newfa.featureactionid FROM newfa), \'%s\', \'%s\', (SELECT variableid FROM odm2.variables WHERE variablecode = \'%s\'), (SELECT unitsid FROM odm2.units WHERE unitsname = \'%s\'), \'%s\', \'%s\', \'%s\')
+RETURNING resultid),
+newmr AS (
+INSERT INTO odm2.measurementresults
+(resultid, censorcodecv, qualitycodecv, aggregationstatisticcv, timeaggregationinterval, timeaggregationintervalunitsid)
+VALUES ((SELECT newresult.resultid FROM newresult), \'%s\', \'%s\', \'%s\', \'%s\', \'%s\')) 
+INSERT INTO odm2.measurementresultvalues
+(resultid, datavalue, valuedatetime, valuedatetimeutcoffset)
+VALUES ((SELECT newresult.resultid FROM newresult), \'%s\', \'%s\', \'%s\')
+RETURNING resultid
+',
+UUIDgenerate(), 'specimen', ch4_data$Exetainer_ID[1], ch4_data$sampledescription[1], 'isChildOf', ch4_data$Site[1], 'specimenCollection', methodcode, as.character(ch4_data$date[1]), utcoffset, UUIDgenerate(), 'measurement', variablecode, unitsname, '3', sampledmedium, '1', censorcodecv, qualitycodecv, aggregationstatisticcv, timeaggregationinterval, timeaggregationintervalunitsid, ch4_data$orig_liq_conc[1], as.character(ch4_data$date[1]), utcoffset)</code></pre>
+<p>If you want to see what the sql looks like</p>
+<pre class="r"><code>write(sql, &quot;sql.txt&quot;)</code></pre>
+<pre class="r"><code>sql &lt;- gsub(&quot;\n&quot;, &quot;&quot;, sql)
+sql</code></pre>
+<pre><code>## [1] &quot;WITH newsf AS (INSERT INTO odm2.samplingfeatures(samplingfeatureuuid, samplingfeaturetypecv, samplingfeaturecode, samplingfeaturedescription)VALUES ('962763cb-acbc-4580-83bc-76ac439ad4b4', 'specimen', 'KLH 215', 'HS sample KLH 215 collected at QB on 2017-10-06')RETURNING samplingfeatureid),newrelation AS (INSERT INTO odm2.relatedfeatures(samplingfeatureid, relationshiptypecv, relatedfeatureid)VALUES ((SELECT newsf.samplingfeatureid FROM newsf), 'isChildOf', (SELECT samplingfeatureid FROM odm2.samplingfeatures WHERE samplingfeaturecode = 'QB'))),newact AS (INSERT INTO odm2.actions(actiontypecv, methodid, begindatetime, begindatetimeutcoffset)VALUES('specimenCollection', (SELECT methodid FROM odm2.methods WHERE methodcode = 'HS'), '2017-10-06', '-4')RETURNING actionid),newfa AS (INSERT into odm2.featureactions(samplingfeatureid, actionid)VALUES ((SELECT newsf.samplingfeatureid FROM newsf), (SELECT newact.actionid FROM newact))RETURNING featureactionid),newresult AS (INSERT INTO odm2.results(featureactionid, resultuuid, resulttypecv, variableid, unitsid, processinglevelid, sampledmediumcv, valuecount)VALUES ((SELECT newfa.featureactionid FROM newfa), '660127f3-80de-4e29-88b4-c7e07050d0bc', 'measurement', (SELECT variableid FROM odm2.variables WHERE variablecode = 'methaneDissolved'), (SELECT unitsid FROM odm2.units WHERE unitsname = 'Micromole per Liter'), '3', 'liquidAqueous', '1')RETURNING resultid),newmr AS (INSERT INTO odm2.measurementresults(resultid, censorcodecv, qualitycodecv, aggregationstatisticcv, timeaggregationinterval, timeaggregationintervalunitsid)VALUES ((SELECT newresult.resultid FROM newresult), 'notCensored', 'unknown', 'sporadic', '1', '1157')) INSERT INTO odm2.measurementresultvalues(resultid, datavalue, valuedatetime, valuedatetimeutcoffset)VALUES ((SELECT newresult.resultid FROM newresult), '103.509230848701', '2017-10-06', '-4')RETURNING resultid&quot;</code></pre>
+<p>try entering into database!</p>
+<pre class="r"><code>dbGetQuery(db, sql)</code></pre>
+</div>
+</div>
+<div id="query-to-get-results" class="section level1">
+<h1>Query to get results</h1>
+<p>Example of querying database for results from a known sample name</p>
+<p>Example of querying database for all results associated with a given site</p>
 </div>
 
 

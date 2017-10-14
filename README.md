@@ -9,7 +9,7 @@ read in a google earth kmz file and add point locations as sites to the sampling
 
 1. [Add relationships between sampling features](https://palmerlab-umd.github.io/choptank-db/relate-samplingfeatures.html)
 
-1. [Add sample results](https://palmerlab-umd.github.io/choptank-db/insert-sample-results.html) *in progress*
+1. [Add sample results](https://palmerlab-umd.github.io/choptank-db/insert-sample-results.html): add results from samples with one value in the results
 
 # Maps
 
@@ -19,7 +19,6 @@ read in a google earth kmz file and add point locations as sites to the sampling
 __Coming soon__:
 
 * insert categorical observations
-* `insert-methods` - add methods to the methods table from csv file with columns as in the methods table
 
 **Links**
 
