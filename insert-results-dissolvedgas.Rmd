@@ -1,0 +1,80 @@
+---
+title: "Inserting Dissolved Gas measurements into database"
+author: "Kelly Hondula"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+---
+
+# Introduction
+
+This is a guide for inserting dissolved gas measurements into the choptank database. The general format of this can likely be adapted for other types of results that come from taking a water sample and then running a laboratory analysis to get results. 
+
+The starting point for using this worksheet is having a spreadsheet/data frame of sample results where each row corresponds to one sample (i.e. "tidy data"). This is the information needed about each sample: 
+
+| Name    | Description                                                      | 
+|---------+------------------------------------------------------------------|
+| **sampling feature code** | a short identifier for the sample specimen | 
+| **datetime** | properly formatted date and time of sample collection |
+| **method** | the name or code of the method used to collect the sample (should already exist in the **Methods** table) |
+| **datavalue** | the result value |
+| **resulttype** | the type of result [result type CV](http://vocabulary.odm2.org/resulttype/) likely "measurement" |
+| **censorcodeCV** | actual value or otherwise ([censor codes](http://vocabulary.odm2.org/censorcode/))  "notCensored" |
+| **qualitycodeCV** | is the data quality good, bad, marginal, unknown, none |
+| **aggregation statistic** | what time period is the result associated with  [aggregation statistic CV](http://vocabulary.odm2.org/aggregationstatistic/)  "sporadic" |
+| **time aggregation interval** | a number | 
+| **time aggregation intervalunits** | 
+| **variable** | |
+| **units** | | 
+| **processing level** | raw, quality controlled, derived, interpreted, etc. [odm2 documentation](https://github.com/ODM2/ODM2/blob/master/doc/ODM2Docs/core_processinglevels.md)  |
+| **sampledmedium** | air, soil, water, etc. [medium CV](http://vocabulary.odm2.org/medium/)  |
+| **value count** | number of data values in the result (should be 1) |
+| **sampling feature description** |(optional) a longer description of the sample | 
+| **related feature** | (optional) the short identifier of the site the sample was collected at, to put in the related features table. | 
+
+
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+password <- scan(".pgpass", what="")
+```
+
+## Load the necessary libraries
+
+If the library is not installed on your computer, use `install.packages()`. 
+
+```{r, message=FALSE}
+library(rgdal) # spatial data types
+library(rgeos) # spatial 
+library(sf) # spatial
+library(uuid) # unique ids
+library(RPostgreSQL) # database
+library(knitr)
+```
+
+## Connect to the database
+
+Use `dbConnect()` to create an object called `db` for interacting with the database. To get familiar with the database, see the document on general database interactions. 
+
+```{r, include=FALSE}
+db <- dbConnect(PostgreSQL(), 
+                 host = "sesync-postgis01.research.sesync.org",
+                 dbname = "choptank", user = "palmergroup",
+                 password = password)
+```
+
+# New methods
+
+If your method for sample collection is not already in the database, add it to the methods table. 
+
+```{r, results='asis'}
+methods <- dbGetQuery(db, "SELECT * FROM odm2.methods")
+kable(methods[,1:4])
+```
+
+## New data
+
+
+## Restructure to match tables in database
+
