@@ -132,7 +132,7 @@ $(document).ready(function ()  {
       ignoreSelector: ".toc-ignore",
       scrollTo: 0
     };
-    options.showAndHide = true;
+    options.showAndHide = false;
     options.smoothScroll = true;
 
     // tocify
@@ -195,6 +195,12 @@ div.tocify {
   border-radius: 0px;
 }
 
+.tocify-subheader {
+  display: inline;
+}
+.tocify-subheader .tocify-item {
+  font-size: 0.95em;
+}
 
 </style>
 
@@ -220,14 +226,17 @@ div.tocify {
 </div>
 
 
-<p><strong>First load the necessary libraries</strong></p>
+<div id="set-up" class="section level1">
+<h1>Set up</h1>
+<p>Load the necessary libraries and connect to the database.</p>
 <p>If the library is not installed on your computer, use <code>install.packages()</code>.</p>
 <pre class="r"><code>library(uuid) # unique ids
 library(RPostgreSQL) # database
-library(knitr)
-library(readr)
-library(DT)
-library(lubridate)</code></pre>
+library(knitr) # kable for table formatting
+library(readr) # read_csv
+library(DT) # data table formatting
+library(lubridate) # dates and times helpers</code></pre>
+</div>
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
 <p>This is a guide for inserting dissolved gas measurements into the choptank database. The general format of this can be adapted for other types of results that come from taking a water sample and then running a laboratory analysis to get results.</p>
@@ -247,7 +256,7 @@ library(lubridate)</code></pre>
 <p>Read in a file of results to be entered</p>
 <p>Each row of the data frame corresponds to one sample, identified by the <strong>Exetainer_ID</strong>. The date and time are there but not formatted correctly. The data values are in the <code>orig_liq_conc</code> column.</p>
 <p>See ODM2 documentation on <a href="https://github.com/ODM2/ODM2/blob/master/doc/ODM2Docs/bp_handlingdatesandtimes.md">handling dates and times</a> and <a href="https://github.com/ODM2/ODM2/blob/master/doc/ODM2Docs/bp_unknowndates.md">unknown dates</a></p>
-<pre class="r"><code>kable(ch4_data)</code></pre>
+<pre class="r"><code>kable(ch4_data[1:5,])</code></pre>
 <table>
 <thead>
 <tr class="header">
@@ -265,8 +274,8 @@ library(lubridate)</code></pre>
 <td align="left">October 6, 2017</td>
 <td align="left">60900</td>
 <td align="left">QB</td>
-<td align="right">103.5092308</td>
-<td align="right">2846.92702</td>
+<td align="right">103.509231</td>
+<td align="right">2846.9270</td>
 <td align="right">3.095674</td>
 <td align="left">KLH 215</td>
 </tr>
@@ -274,8 +283,8 @@ library(lubridate)</code></pre>
 <td align="left">October 6, 2017</td>
 <td align="left">60900</td>
 <td align="left">QB</td>
-<td align="right">102.6650550</td>
-<td align="right">2823.70999</td>
+<td align="right">102.665055</td>
+<td align="right">2823.7100</td>
 <td align="right">3.095674</td>
 <td align="left">KLH 216</td>
 </tr>
@@ -283,8 +292,8 @@ library(lubridate)</code></pre>
 <td align="left">October 6, 2017</td>
 <td align="left">60900</td>
 <td align="left">QB</td>
-<td align="right">83.3063275</td>
-<td align="right">2291.29477</td>
+<td align="right">83.306327</td>
+<td align="right">2291.2948</td>
 <td align="right">3.095674</td>
 <td align="left">KLH 217</td>
 </tr>
@@ -292,8 +301,8 @@ library(lubridate)</code></pre>
 <td align="left">October 6, 2017</td>
 <td align="left">48600</td>
 <td align="left">JU</td>
-<td align="right">5.9112508</td>
-<td align="right">162.83027</td>
+<td align="right">5.911251</td>
+<td align="right">162.8303</td>
 <td align="right">5.114133</td>
 <td align="left">KLH 246</td>
 </tr>
@@ -301,550 +310,10 @@ library(lubridate)</code></pre>
 <td align="left">October 6, 2017</td>
 <td align="left">48600</td>
 <td align="left">JU</td>
-<td align="right">4.6204552</td>
-<td align="right">127.33004</td>
+<td align="right">4.620455</td>
+<td align="right">127.3300</td>
 <td align="right">5.114133</td>
 <td align="left">KLH 244</td>
-</tr>
-<tr class="even">
-<td align="left">October 6, 2017</td>
-<td align="left">48600</td>
-<td align="left">JU</td>
-<td align="right">6.7153926</td>
-<td align="right">184.94626</td>
-<td align="right">5.114133</td>
-<td align="left">KLH 245</td>
-</tr>
-<tr class="odd">
-<td align="left">August 6, 2017</td>
-<td align="left">NA</td>
-<td align="left">Trailer ditch</td>
-<td align="right">5.1864294</td>
-<td align="right">142.88303</td>
-<td align="right">4.858584</td>
-<td align="left">x002</td>
-</tr>
-<tr class="even">
-<td align="left">August 6, 2017</td>
-<td align="left">NA</td>
-<td align="left">QB</td>
-<td align="right">6.9949005</td>
-<td align="right">192.62068</td>
-<td align="right">4.858584</td>
-<td align="left">x003</td>
-</tr>
-<tr class="odd">
-<td align="left">August 6, 2017</td>
-<td align="left">NA</td>
-<td align="left">QB</td>
-<td align="right">6.1215325</td>
-<td align="right">168.60079</td>
-<td align="right">4.858584</td>
-<td align="left">x004</td>
-</tr>
-<tr class="even">
-<td align="left">August 6, 2017</td>
-<td align="left">NA</td>
-<td align="left">DankBay</td>
-<td align="right">2.8559584</td>
-<td align="right">78.78904</td>
-<td align="right">4.858584</td>
-<td align="left">x005</td>
-</tr>
-<tr class="odd">
-<td align="left">August 6, 2017</td>
-<td align="left">NA</td>
-<td align="left">DankBay</td>
-<td align="right">2.9259732</td>
-<td align="right">80.71462</td>
-<td align="right">4.858584</td>
-<td align="left">x006</td>
-</tr>
-<tr class="even">
-<td align="left">August 6, 2017</td>
-<td align="left">NA</td>
-<td align="left">Ditch by Tiger9</td>
-<td align="right">8.8789524</td>
-<td align="right">244.43700</td>
-<td align="right">4.858584</td>
-<td align="left">x007</td>
-</tr>
-<tr class="odd">
-<td align="left">August 6, 2017</td>
-<td align="left">NA</td>
-<td align="left">JU</td>
-<td align="right">3.3783692</td>
-<td align="right">93.15669</td>
-<td align="right">4.858584</td>
-<td align="left">x008</td>
-</tr>
-<tr class="even">
-<td align="left">August 6, 2017</td>
-<td align="left">NA</td>
-<td align="left">JU</td>
-<td align="right">3.3752390</td>
-<td align="right">93.07060</td>
-<td align="right">4.858584</td>
-<td align="left">x009</td>
-</tr>
-<tr class="odd">
-<td align="left">August 6, 2017</td>
-<td align="left">NA</td>
-<td align="left">TA</td>
-<td align="right">7.4000167</td>
-<td align="right">203.76243</td>
-<td align="right">4.858584</td>
-<td align="left">x010</td>
-</tr>
-<tr class="even">
-<td align="left">August 6, 2017</td>
-<td align="left">NA</td>
-<td align="left">TA</td>
-<td align="right">7.0185962</td>
-<td align="right">193.27237</td>
-<td align="right">4.858584</td>
-<td align="left">x011</td>
-</tr>
-<tr class="odd">
-<td align="left">August 6, 2017</td>
-<td align="left">NA</td>
-<td align="left">TB</td>
-<td align="right">2.4690259</td>
-<td align="right">68.14739</td>
-<td align="right">4.858584</td>
-<td align="left">x012</td>
-</tr>
-<tr class="even">
-<td align="left">August 6, 2017</td>
-<td align="left">NA</td>
-<td align="left">TB</td>
-<td align="right">2.3649464</td>
-<td align="right">65.28493</td>
-<td align="right">4.858584</td>
-<td align="left">x013</td>
-</tr>
-<tr class="odd">
-<td align="left">August 6, 2017</td>
-<td align="left">NA</td>
-<td align="left">BB</td>
-<td align="right">14.2034619</td>
-<td align="right">390.87482</td>
-<td align="right">4.858584</td>
-<td align="left">x014</td>
-</tr>
-<tr class="even">
-<td align="left">August 6, 2017</td>
-<td align="left">NA</td>
-<td align="left">BB</td>
-<td align="right">14.8522293</td>
-<td align="right">408.71760</td>
-<td align="right">4.858584</td>
-<td align="left">x015</td>
-</tr>
-<tr class="odd">
-<td align="left">Sept 10, 2017</td>
-<td align="left">54000</td>
-<td align="left">BB</td>
-<td align="right">23.3037804</td>
-<td align="right">641.62778</td>
-<td align="right">14.276672</td>
-<td align="left">KH 090</td>
-</tr>
-<tr class="even">
-<td align="left">Sept 10, 2017</td>
-<td align="left">54000</td>
-<td align="left">BB</td>
-<td align="right">23.3037804</td>
-<td align="right">641.62778</td>
-<td align="right">14.276672</td>
-<td align="left">KH 090</td>
-</tr>
-<tr class="odd">
-<td align="left">Sept 10, 2017</td>
-<td align="left">42120</td>
-<td align="left">QB</td>
-<td align="right">17.2839830</td>
-<td align="right">476.06774</td>
-<td align="right">14.276672</td>
-<td align="left">KH 079</td>
-</tr>
-<tr class="even">
-<td align="left">Sept 10, 2017</td>
-<td align="left">42120</td>
-<td align="left">QB</td>
-<td align="right">17.2839830</td>
-<td align="right">476.06774</td>
-<td align="right">14.276672</td>
-<td align="left">KH 079</td>
-</tr>
-<tr class="odd">
-<td align="left">Sept 13, 2017</td>
-<td align="left">43500</td>
-<td align="left">DB</td>
-<td align="right">3.2991773</td>
-<td align="right">90.98577</td>
-<td align="right">5.000000</td>
-<td align="left">KH 138</td>
-</tr>
-<tr class="even">
-<td align="left">Sept 13, 2017</td>
-<td align="left">43500</td>
-<td align="left">DB</td>
-<td align="right">3.2991773</td>
-<td align="right">90.98577</td>
-<td align="right">5.000000</td>
-<td align="left">KH 138</td>
-</tr>
-<tr class="odd">
-<td align="left">Sept 13, 2017</td>
-<td align="left">56400</td>
-<td align="left">JA</td>
-<td align="right">10.6577887</td>
-<td align="right">293.36667</td>
-<td align="right">5.000000</td>
-<td align="left">KH 110</td>
-</tr>
-<tr class="even">
-<td align="left">Sept 13, 2017</td>
-<td align="left">56400</td>
-<td align="left">JA</td>
-<td align="right">10.6577887</td>
-<td align="right">293.36667</td>
-<td align="right">5.000000</td>
-<td align="left">KH 110</td>
-</tr>
-<tr class="odd">
-<td align="left">Sept 13, 2017</td>
-<td align="left">56940</td>
-<td align="left">JB</td>
-<td align="right">4.8406580</td>
-<td align="right">133.38049</td>
-<td align="right">5.000000</td>
-<td align="left">KH 125</td>
-</tr>
-<tr class="even">
-<td align="left">Sept 13, 2017</td>
-<td align="left">56940</td>
-<td align="left">JB</td>
-<td align="right">4.8406580</td>
-<td align="right">133.38049</td>
-<td align="right">5.000000</td>
-<td align="left">KH 125</td>
-</tr>
-<tr class="odd">
-<td align="left">Sept 13, 2017</td>
-<td align="left">45600</td>
-<td align="left">Tiny Bay</td>
-<td align="right">14.0156328</td>
-<td align="right">385.71610</td>
-<td align="right">5.000000</td>
-<td align="left">KH 094</td>
-</tr>
-<tr class="even">
-<td align="left">Sept 13, 2017</td>
-<td align="left">45600</td>
-<td align="left">Tiny Bay</td>
-<td align="right">14.0156328</td>
-<td align="right">385.71610</td>
-<td align="right">5.000000</td>
-<td align="left">KH 094</td>
-</tr>
-<tr class="odd">
-<td align="left">Sept 20, 2017</td>
-<td align="left">NA</td>
-<td align="left">DK</td>
-<td align="right">13.3364990</td>
-<td align="right">367.12015</td>
-<td align="right">6.641029</td>
-<td align="left">KH 109</td>
-</tr>
-<tr class="even">
-<td align="left">Sept 20, 2017</td>
-<td align="left">NA</td>
-<td align="left">outflow site WP 150</td>
-<td align="right">6.7765458</td>
-<td align="right">186.67982</td>
-<td align="right">6.148641</td>
-<td align="left">KH 127</td>
-</tr>
-<tr class="odd">
-<td align="left">Sept 20, 2017</td>
-<td align="left">NA</td>
-<td align="left">outflow site WP 150</td>
-<td align="right">3.1084689</td>
-<td align="right">85.79819</td>
-<td align="right">6.148641</td>
-<td align="left">KH 135</td>
-</tr>
-<tr class="even">
-<td align="left">Sept 20, 2017</td>
-<td align="left">NA</td>
-<td align="left">TB</td>
-<td align="right">34.7279083</td>
-<td align="right">955.56435</td>
-<td align="right">9.141736</td>
-<td align="left">KH 153</td>
-</tr>
-<tr class="odd">
-<td align="left">Sept 20, 2017</td>
-<td align="left">NA</td>
-<td align="left">TA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">8.083103</td>
-<td align="left">KH 160</td>
-</tr>
-<tr class="even">
-<td align="left">Sept 20, 2017</td>
-<td align="left">NA</td>
-<td align="left">TA</td>
-<td align="right">78.3194975</td>
-<td align="right">2154.39322</td>
-<td align="right">8.083103</td>
-<td align="left">KH 161</td>
-</tr>
-<tr class="odd">
-<td align="left">Sept 20, 2017</td>
-<td align="left">NA</td>
-<td align="left">TA</td>
-<td align="right">78.3194975</td>
-<td align="right">2154.39322</td>
-<td align="right">8.083103</td>
-<td align="left">KH 161</td>
-</tr>
-<tr class="even">
-<td align="left">Sept 20, 2017</td>
-<td align="left">NA</td>
-<td align="left">DK</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">6.641029</td>
-<td align="left">KH 165</td>
-</tr>
-<tr class="odd">
-<td align="left">Sept 20, 2017</td>
-<td align="left">NA</td>
-<td align="left">ND</td>
-<td align="right">2.8923485</td>
-<td align="right">79.88201</td>
-<td align="right">6.702701</td>
-<td align="left">KH 166</td>
-</tr>
-<tr class="even">
-<td align="left">Sept 20, 2017</td>
-<td align="left">NA</td>
-<td align="left">ND</td>
-<td align="right">4.9047795</td>
-<td align="right">135.22908</td>
-<td align="right">6.702701</td>
-<td align="left">KH 167</td>
-</tr>
-<tr class="odd">
-<td align="left">Sept 20, 2017</td>
-<td align="left">NA</td>
-<td align="left">ND</td>
-<td align="right">4.9047795</td>
-<td align="right">135.22908</td>
-<td align="right">6.702701</td>
-<td align="left">KH 167</td>
-</tr>
-<tr class="even">
-<td align="left">Sept 20, 2017</td>
-<td align="left">NA</td>
-<td align="left">outflow site WP 150</td>
-<td align="right">6.9726786</td>
-<td align="right">192.07398</td>
-<td align="right">6.148641</td>
-<td align="left">KH 170</td>
-</tr>
-<tr class="odd">
-<td align="left">Sept 20, 2017</td>
-<td align="left">NA</td>
-<td align="left">outflow site WP 150</td>
-<td align="right">6.9726786</td>
-<td align="right">192.07398</td>
-<td align="right">6.148641</td>
-<td align="left">KH 170</td>
-</tr>
-<tr class="even">
-<td align="left">Sept 20, 2017</td>
-<td align="left">NA</td>
-<td align="left">QB</td>
-<td align="right">41.8328927</td>
-<td align="right">1150.94318</td>
-<td align="right">8.608056</td>
-<td align="left">KH 183</td>
-</tr>
-<tr class="odd">
-<td align="left">Sept 20, 2017</td>
-<td align="left">NA</td>
-<td align="left">QB</td>
-<td align="right">46.1935233</td>
-<td align="right">1270.87183</td>
-<td align="right">8.608056</td>
-<td align="left">KH 186</td>
-</tr>
-<tr class="even">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">ND</td>
-<td align="right">3.0436674</td>
-<td align="right">83.97977</td>
-<td align="right">5.423851</td>
-<td align="left">KH 022</td>
-</tr>
-<tr class="odd">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">ND</td>
-<td align="right">2.4674443</td>
-<td align="right">68.13214</td>
-<td align="right">5.423851</td>
-<td align="left">KH 022</td>
-</tr>
-<tr class="even">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">ND</td>
-<td align="right">1.7472398</td>
-<td align="right">48.32465</td>
-<td align="right">5.423851</td>
-<td align="left">KH 024</td>
-</tr>
-<tr class="odd">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">ND</td>
-<td align="right">1.7168354</td>
-<td align="right">47.48845</td>
-<td align="right">5.423851</td>
-<td align="left">KH 024</td>
-</tr>
-<tr class="even">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">DB</td>
-<td align="right">0.6099632</td>
-<td align="right">17.00094</td>
-<td align="right">4.510260</td>
-<td align="left">KH 017</td>
-</tr>
-<tr class="odd">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">DB</td>
-<td align="right">0.6082906</td>
-<td align="right">16.95494</td>
-<td align="right">4.510260</td>
-<td align="left">KH 016</td>
-</tr>
-<tr class="even">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">BB</td>
-<td align="right">1.6964118</td>
-<td align="right">47.16329</td>
-<td align="right">10.157905</td>
-<td align="left">KH 015</td>
-</tr>
-<tr class="odd">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">BB</td>
-<td align="right">1.3636697</td>
-<td align="right">38.01202</td>
-<td align="right">10.157905</td>
-<td align="left">KH 014</td>
-</tr>
-<tr class="even">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">JA</td>
-<td align="right">0.7019514</td>
-<td align="right">19.51428</td>
-<td align="right">4.178613</td>
-<td align="left">KH 011</td>
-</tr>
-<tr class="odd">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">JA</td>
-<td align="right">0.7500396</td>
-<td align="right">20.83683</td>
-<td align="right">4.178613</td>
-<td align="left">KH 012</td>
-</tr>
-<tr class="even">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">AnnsBay</td>
-<td align="right">1.6510882</td>
-<td align="right">45.68023</td>
-<td align="right">5.423851</td>
-<td align="left">KH 010</td>
-</tr>
-<tr class="odd">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">JB</td>
-<td align="right">0.3238804</td>
-<td align="right">9.17857</td>
-<td align="right">5.423851</td>
-<td align="left">KH 009</td>
-</tr>
-<tr class="even">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">JC</td>
-<td align="right">1.4443638</td>
-<td align="right">39.99477</td>
-<td align="right">5.423851</td>
-<td align="left">KH 013</td>
-</tr>
-<tr class="odd">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">QB</td>
-<td align="right">15.6461581</td>
-<td align="right">430.51661</td>
-<td align="right">4.136238</td>
-<td align="left">KH 004</td>
-</tr>
-<tr class="even">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">QB</td>
-<td align="right">17.5549146</td>
-<td align="right">483.01236</td>
-<td align="right">4.136238</td>
-<td align="left">KH 005</td>
-</tr>
-<tr class="odd">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">QB</td>
-<td align="right">20.2653010</td>
-<td align="right">557.55502</td>
-<td align="right">4.136238</td>
-<td align="left">KH 007</td>
-</tr>
-<tr class="even">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">QB</td>
-<td align="right">22.0407402</td>
-<td align="right">606.38420</td>
-<td align="right">4.136238</td>
-<td align="left">KH 006</td>
-</tr>
-<tr class="odd">
-<td align="left">July 30, 2017</td>
-<td align="left">NA</td>
-<td align="left">JB</td>
-<td align="right">0.6124581</td>
-<td align="right">17.11521</td>
-<td align="right">5.423851</td>
-<td align="left">KH 008</td>
 </tr>
 </tbody>
 </table>
@@ -975,8 +444,6 @@ sql</code></pre>
 <pre><code>## [1] &quot;INSERT INTO odm2.methods         (methodtypecv, methodcode, methodname, methoddescription)         VALUES        ('specimenCollection', 'HS', 'Headspace dissolved gas', 'NEON protocol for headspace dissolved gas sampling followed by GC analysis and calculation of original gas concentration')&quot;</code></pre>
 <p>Then put in the database.</p>
 <pre class="r"><code>dbGetQuery(db, sql) </code></pre>
-<p>Get the methodid corresponding to these samples from the methods table.</p>
-<pre class="r"><code>methodid &lt;- dbGetQuery(db, &quot;SELECT methodid FROM odm2.methods WHERE methodcode = 'HS'&quot;)</code></pre>
 </div>
 <div id="variables" class="section level2">
 <h2>Variables</h2>
@@ -1074,7 +541,6 @@ timeaggregationinterval = 1 # assume 1 minute
 timeaggregationintervalunitsid = 1157 # minute
 processlinglevel = 2
 valuecount = 1</code></pre>
-<pre class="r"><code>unitsid &lt;- dbGetQuery(db, &quot;SELECT unitsid FROM odm2.units WHERE unitsname = 'Micromole per Liter'&quot;)</code></pre>
 </div>
 </div>
 <div id="inserting-into-database" class="section level1">
@@ -1089,8 +555,8 @@ valuecount = 1</code></pre>
 </ol>
 <div id="sql-craziness" class="section level2">
 <h2>Sql craziness</h2>
-<pre class="r"><code>sql &lt;- sprintf(
-'WITH 
+<p>Make the structure of the SQL statement</p>
+<pre class="r"><code>sql_blanks &lt;- 'WITH 
 newsf AS (
 INSERT INTO odm2.samplingfeatures
 (samplingfeatureuuid, samplingfeaturetypecv, samplingfeaturecode, samplingfeaturedescription)
@@ -1124,19 +590,128 @@ INSERT INTO odm2.measurementresultvalues
 (resultid, datavalue, valuedatetime, valuedatetimeutcoffset)
 VALUES ((SELECT newresult.resultid FROM newresult), \'%s\', \'%s\', \'%s\')
 RETURNING resultid
-',
-UUIDgenerate(), 'specimen', ch4_data$Exetainer_ID[1], ch4_data$sampledescription[1], 'isChildOf', ch4_data$Site[1], 'specimenCollection', methodcode, as.character(ch4_data$date[1]), utcoffset, UUIDgenerate(), 'measurement', variablecode, unitsname, '3', sampledmedium, '1', censorcodecv, qualitycodecv, aggregationstatisticcv, timeaggregationinterval, timeaggregationintervalunitsid, ch4_data$orig_liq_conc[1], as.character(ch4_data$date[1]), utcoffset)</code></pre>
+'</code></pre>
+</div>
+</div>
+<div id="function-to-insert-results" class="section level1">
+<h1>function to insert results</h1>
+<pre class="r"><code># needs sql_blanks, ch4_data, db connection
+# as well as al the other parameters
+
+insert_methaneDissolved_results &lt;- function(x){
+  # create SQL statement
+  sql &lt;- sprintf(sql_blanks,
+  UUIDgenerate(), 'specimen', ch4_data$Exetainer_ID[x],
+  ch4_data$sampledescription[x], 
+  'isChildOf', ch4_data$Site[x],
+  'specimenCollection', methodcode, as.character(ch4_data$date[x]),
+  utcoffset, 
+  UUIDgenerate(), 'measurement', variablecode, unitsname,
+  '3', # processing level 2 id is 3
+  sampledmedium, '1',
+  censorcodecv, qualitycodecv, aggregationstatisticcv,
+  timeaggregationinterval, timeaggregationintervalunitsid,
+  ch4_data$orig_liq_conc[x], as.character(ch4_data$date[x]), utcoffset)
+  # remove line endings
+  sql &lt;- gsub(&quot;\n&quot;, &quot;&quot;, sql)
+  # insert into database
+  dbGetQuery(db, sql)
+}</code></pre>
+<p>Note that the function doesn’t work if the site is not in the sampling features table</p>
+<p><code>x</code> is the number of the row from the original sample table (<code>ch4_data</code> in this case). So run the function for each of the samples to be entered into the database, either one at a time</p>
+<pre class="r"><code>insert_methaneDissolved_results(2)</code></pre>
+<p>or over a range with an apply function</p>
+<pre class="r"><code>lapply(3:65, function(x) insert_methaneDissolved_results(x))</code></pre>
+<p>This is what the function is doing piece by piece.</p>
+<p>First, fill in the blanks (<code>%s</code>) with the <code>sprintf()</code> function.</p>
+<pre class="r"><code>sql &lt;- sprintf(sql_blanks, 
+  UUIDgenerate(), 
+  'specimen',
+  ch4_data$Exetainer_ID[1],
+  ch4_data$sampledescription[1],
+  'isChildOf', 
+  ch4_data$Site[1],
+  'specimenCollection',
+  methodcode,
+  as.character(ch4_data$date[1]),
+  utcoffset,
+  UUIDgenerate(),
+  'measurement',
+  variablecode,
+  unitsname,
+  '3', # processing level 2 id is 3
+  sampledmedium,
+  '1',
+  censorcodecv,
+  qualitycodecv,
+  aggregationstatisticcv,
+  timeaggregationinterval,
+  timeaggregationintervalunitsid,
+  ch4_data$orig_liq_conc[1],
+  as.character(ch4_data$date[1]), 
+  utcoffset)</code></pre>
 <p>If you want to see what the sql looks like</p>
 <pre class="r"><code>write(sql, &quot;sql.txt&quot;)</code></pre>
+<p>Then it gets rid of line endings before executing the sql</p>
 <pre class="r"><code>sql &lt;- gsub(&quot;\n&quot;, &quot;&quot;, sql)
 sql</code></pre>
-<pre><code>## [1] &quot;WITH newsf AS (INSERT INTO odm2.samplingfeatures(samplingfeatureuuid, samplingfeaturetypecv, samplingfeaturecode, samplingfeaturedescription)VALUES ('962763cb-acbc-4580-83bc-76ac439ad4b4', 'specimen', 'KLH 215', 'HS sample KLH 215 collected at QB on 2017-10-06')RETURNING samplingfeatureid),newrelation AS (INSERT INTO odm2.relatedfeatures(samplingfeatureid, relationshiptypecv, relatedfeatureid)VALUES ((SELECT newsf.samplingfeatureid FROM newsf), 'isChildOf', (SELECT samplingfeatureid FROM odm2.samplingfeatures WHERE samplingfeaturecode = 'QB'))),newact AS (INSERT INTO odm2.actions(actiontypecv, methodid, begindatetime, begindatetimeutcoffset)VALUES('specimenCollection', (SELECT methodid FROM odm2.methods WHERE methodcode = 'HS'), '2017-10-06', '-4')RETURNING actionid),newfa AS (INSERT into odm2.featureactions(samplingfeatureid, actionid)VALUES ((SELECT newsf.samplingfeatureid FROM newsf), (SELECT newact.actionid FROM newact))RETURNING featureactionid),newresult AS (INSERT INTO odm2.results(featureactionid, resultuuid, resulttypecv, variableid, unitsid, processinglevelid, sampledmediumcv, valuecount)VALUES ((SELECT newfa.featureactionid FROM newfa), '660127f3-80de-4e29-88b4-c7e07050d0bc', 'measurement', (SELECT variableid FROM odm2.variables WHERE variablecode = 'methaneDissolved'), (SELECT unitsid FROM odm2.units WHERE unitsname = 'Micromole per Liter'), '3', 'liquidAqueous', '1')RETURNING resultid),newmr AS (INSERT INTO odm2.measurementresults(resultid, censorcodecv, qualitycodecv, aggregationstatisticcv, timeaggregationinterval, timeaggregationintervalunitsid)VALUES ((SELECT newresult.resultid FROM newresult), 'notCensored', 'unknown', 'sporadic', '1', '1157')) INSERT INTO odm2.measurementresultvalues(resultid, datavalue, valuedatetime, valuedatetimeutcoffset)VALUES ((SELECT newresult.resultid FROM newresult), '103.509230848701', '2017-10-06', '-4')RETURNING resultid&quot;</code></pre>
-<p>try entering into database!</p>
+<pre><code>## [1] &quot;WITH newsf AS (INSERT INTO odm2.samplingfeatures(samplingfeatureuuid, samplingfeaturetypecv, samplingfeaturecode, samplingfeaturedescription)VALUES ('681c23b8-c57c-4515-aca7-d96770a71d18', 'specimen', 'KLH 215', 'HS sample KLH 215 collected at QB on 2017-10-06')RETURNING samplingfeatureid),newrelation AS (INSERT INTO odm2.relatedfeatures(samplingfeatureid, relationshiptypecv, relatedfeatureid)VALUES ((SELECT newsf.samplingfeatureid FROM newsf), 'isChildOf', (SELECT samplingfeatureid FROM odm2.samplingfeatures WHERE samplingfeaturecode = 'QB'))),newact AS (INSERT INTO odm2.actions(actiontypecv, methodid, begindatetime, begindatetimeutcoffset)VALUES('specimenCollection', (SELECT methodid FROM odm2.methods WHERE methodcode = 'HS'), '2017-10-06', '-4')RETURNING actionid),newfa AS (INSERT into odm2.featureactions(samplingfeatureid, actionid)VALUES ((SELECT newsf.samplingfeatureid FROM newsf), (SELECT newact.actionid FROM newact))RETURNING featureactionid),newresult AS (INSERT INTO odm2.results(featureactionid, resultuuid, resulttypecv, variableid, unitsid, processinglevelid, sampledmediumcv, valuecount)VALUES ((SELECT newfa.featureactionid FROM newfa), 'ba618d00-1395-473e-80cd-f009db082b4f', 'measurement', (SELECT variableid FROM odm2.variables WHERE variablecode = 'methaneDissolved'), (SELECT unitsid FROM odm2.units WHERE unitsname = 'Micromole per Liter'), '3', 'liquidAqueous', '1')RETURNING resultid),newmr AS (INSERT INTO odm2.measurementresults(resultid, censorcodecv, qualitycodecv, aggregationstatisticcv, timeaggregationinterval, timeaggregationintervalunitsid)VALUES ((SELECT newresult.resultid FROM newresult), 'notCensored', 'unknown', 'sporadic', '1', '1157')) INSERT INTO odm2.measurementresultvalues(resultid, datavalue, valuedatetime, valuedatetimeutcoffset)VALUES ((SELECT newresult.resultid FROM newresult), '103.509230848701', '2017-10-06', '-4')RETURNING resultid&quot;</code></pre>
+<p>Then executes the sql into database!</p>
 <pre class="r"><code>dbGetQuery(db, sql)</code></pre>
-</div>
 </div>
 <div id="query-to-get-results" class="section level1">
 <h1>Query to get results</h1>
+<pre class="r"><code>resultvalues &lt;- dbReadTable(db, c(&quot;odm2&quot;, &quot;measurementresultvalues&quot;))</code></pre>
+<pre class="r"><code>kable(resultvalues[1:5,])</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">valueid</th>
+<th align="right">resultid</th>
+<th align="right">datavalue</th>
+<th align="left">valuedatetime</th>
+<th align="right">valuedatetimeutcoffset</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">17.780</td>
+<td align="left">2017-07-30 14:00:00</td>
+<td align="right">-4</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="right">5</td>
+<td align="right">27.940</td>
+<td align="left">1999-07-01 00:00:00</td>
+<td align="right">-4</td>
+</tr>
+<tr class="odd">
+<td align="right">3</td>
+<td align="right">6</td>
+<td align="right">15.240</td>
+<td align="left">1999-07-01 00:00:00</td>
+<td align="right">-4</td>
+</tr>
+<tr class="even">
+<td align="right">4</td>
+<td align="right">7</td>
+<td align="right">10.160</td>
+<td align="left">1999-07-01 00:00:00</td>
+<td align="right">-4</td>
+</tr>
+<tr class="odd">
+<td align="right">5</td>
+<td align="right">8</td>
+<td align="right">29.972</td>
+<td align="left">1999-07-01 00:00:00</td>
+<td align="right">-4</td>
+</tr>
+</tbody>
+</table>
+<p>Joins… coming soon</p>
 <p>Example of querying database for results from a known sample name</p>
 <p>Example of querying database for all results associated with a given site</p>
 </div>
