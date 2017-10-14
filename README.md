@@ -9,6 +9,8 @@ read in a google earth kmz file and add point locations as sites to the sampling
 
 1. [Add relationships between sampling features](https://palmerlab-umd.github.io/choptank-db/relate-samplingfeatures.html)
 
+1. [Add sample results](https://palmerlab-umd.github.io/choptank-db/insert-sample-results.html) *in progress*
+
 # Maps
 
 [Nate's Approximate Well Locations](https://palmerlab-umd.github.io/choptank-db/ApproxWellLoc.html) 
@@ -16,7 +18,6 @@ read in a google earth kmz file and add point locations as sites to the sampling
 
 __Coming soon__:
 
-* Relate features to each other using the related features table
 * insert categorical observations
 * `insert-methods` - add methods to the methods table from csv file with columns as in the methods table
 
