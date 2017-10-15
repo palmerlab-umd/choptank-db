@@ -558,37 +558,97 @@ valuecount = 1</code></pre>
 <p>Make the structure of the SQL statement</p>
 <pre class="r"><code>sql_blanks &lt;- 'WITH 
 newsf AS (
-INSERT INTO odm2.samplingfeatures
-(samplingfeatureuuid, samplingfeaturetypecv, samplingfeaturecode, samplingfeaturedescription)
-VALUES (\'%s\', \'%s\', \'%s\', \'%s\')
+INSERT INTO odm2.samplingfeatures (
+  samplingfeatureuuid, 
+  samplingfeaturetypecv, 
+  samplingfeaturecode, 
+  samplingfeaturedescription)
+VALUES (
+  \'%s\', 
+  \'%s\', 
+  \'%s\', 
+  \'%s\')
 RETURNING samplingfeatureid),
+
 newrelation AS (
-INSERT INTO odm2.relatedfeatures
-(samplingfeatureid, relationshiptypecv, relatedfeatureid)
-VALUES ((SELECT newsf.samplingfeatureid FROM newsf), \'%s\', (SELECT samplingfeatureid FROM odm2.samplingfeatures WHERE samplingfeaturecode = \'%s\'))),
+INSERT INTO odm2.relatedfeatures (
+  samplingfeatureid, 
+  relationshiptypecv, 
+  relatedfeatureid)
+VALUES (
+  (SELECT newsf.samplingfeatureid FROM newsf), 
+  \'%s\', 
+  (SELECT samplingfeatureid FROM odm2.samplingfeatures WHERE samplingfeaturecode = \'%s\'))),
+
 newact AS (
-INSERT INTO odm2.actions
-(actiontypecv, methodid, begindatetime, begindatetimeutcoffset)
-VALUES
-(\'%s\', (SELECT methodid FROM odm2.methods WHERE methodcode = \'%s\'), \'%s\', \'%s\')
+INSERT INTO odm2.actions (
+  actiontypecv, 
+  methodid, 
+  begindatetime,
+  begindatetimeutcoffset)
+VALUES (
+  \'%s\', 
+  (SELECT methodid FROM odm2.methods WHERE methodcode = \'%s\'), 
+  \'%s\', 
+  \'%s\')
 RETURNING actionid),
+
 newfa AS (
-INSERT into odm2.featureactions
-(samplingfeatureid, actionid)
-VALUES ((SELECT newsf.samplingfeatureid FROM newsf), (SELECT newact.actionid FROM newact))
+INSERT into odm2.featureactions (
+  samplingfeatureid, 
+  actionid)
+VALUES (
+  (SELECT newsf.samplingfeatureid FROM newsf),
+  (SELECT newact.actionid FROM newact))
 RETURNING featureactionid),
+
 newresult AS (
-INSERT INTO odm2.results
-(featureactionid, resultuuid, resulttypecv, variableid, unitsid, processinglevelid, sampledmediumcv, valuecount)
-VALUES ((SELECT newfa.featureactionid FROM newfa), \'%s\', \'%s\', (SELECT variableid FROM odm2.variables WHERE variablecode = \'%s\'), (SELECT unitsid FROM odm2.units WHERE unitsname = \'%s\'), \'%s\', \'%s\', \'%s\')
+INSERT INTO odm2.results (
+  featureactionid,
+  resultuuid,
+  resulttypecv,
+  variableid,
+  unitsid,
+  processinglevelid,
+  sampledmediumcv, 
+  valuecount)
+VALUES (
+  (SELECT newfa.featureactionid FROM newfa),
+  \'%s\',
+  \'%s\',
+  (SELECT variableid FROM odm2.variables WHERE variablecode = \'%s\'),
+  (SELECT unitsid FROM odm2.units WHERE unitsname = \'%s\'),
+  \'%s\',
+  \'%s\',
+  \'%s\')
 RETURNING resultid),
+
 newmr AS (
-INSERT INTO odm2.measurementresults
-(resultid, censorcodecv, qualitycodecv, aggregationstatisticcv, timeaggregationinterval, timeaggregationintervalunitsid)
-VALUES ((SELECT newresult.resultid FROM newresult), \'%s\', \'%s\', \'%s\', \'%s\', \'%s\')) 
-INSERT INTO odm2.measurementresultvalues
-(resultid, datavalue, valuedatetime, valuedatetimeutcoffset)
-VALUES ((SELECT newresult.resultid FROM newresult), \'%s\', \'%s\', \'%s\')
+INSERT INTO odm2.measurementresults (
+  resultid,
+  censorcodecv,
+  qualitycodecv,
+  aggregationstatisticcv,
+  timeaggregationinterval,
+  timeaggregationintervalunitsid)
+VALUES (
+  (SELECT newresult.resultid FROM newresult),
+  \'%s\',
+  \'%s\', 
+  \'%s\', 
+  \'%s\', 
+  \'%s\')) 
+
+INSERT INTO odm2.measurementresultvalues (
+  resultid,
+  datavalue,
+  valuedatetime,
+  valuedatetimeutcoffset)
+VALUES (
+  (SELECT newresult.resultid FROM newresult),
+  \'%s\',
+  \'%s\', 
+  \'%s\')
 RETURNING resultid
 '</code></pre>
 </div>
@@ -655,7 +715,7 @@ insert_methaneDissolved_results &lt;- function(x){
 <p>Then it gets rid of line endings before executing the sql</p>
 <pre class="r"><code>sql &lt;- gsub(&quot;\n&quot;, &quot;&quot;, sql)
 sql</code></pre>
-<pre><code>## [1] &quot;WITH newsf AS (INSERT INTO odm2.samplingfeatures(samplingfeatureuuid, samplingfeaturetypecv, samplingfeaturecode, samplingfeaturedescription)VALUES ('681c23b8-c57c-4515-aca7-d96770a71d18', 'specimen', 'KLH 215', 'HS sample KLH 215 collected at QB on 2017-10-06')RETURNING samplingfeatureid),newrelation AS (INSERT INTO odm2.relatedfeatures(samplingfeatureid, relationshiptypecv, relatedfeatureid)VALUES ((SELECT newsf.samplingfeatureid FROM newsf), 'isChildOf', (SELECT samplingfeatureid FROM odm2.samplingfeatures WHERE samplingfeaturecode = 'QB'))),newact AS (INSERT INTO odm2.actions(actiontypecv, methodid, begindatetime, begindatetimeutcoffset)VALUES('specimenCollection', (SELECT methodid FROM odm2.methods WHERE methodcode = 'HS'), '2017-10-06', '-4')RETURNING actionid),newfa AS (INSERT into odm2.featureactions(samplingfeatureid, actionid)VALUES ((SELECT newsf.samplingfeatureid FROM newsf), (SELECT newact.actionid FROM newact))RETURNING featureactionid),newresult AS (INSERT INTO odm2.results(featureactionid, resultuuid, resulttypecv, variableid, unitsid, processinglevelid, sampledmediumcv, valuecount)VALUES ((SELECT newfa.featureactionid FROM newfa), 'ba618d00-1395-473e-80cd-f009db082b4f', 'measurement', (SELECT variableid FROM odm2.variables WHERE variablecode = 'methaneDissolved'), (SELECT unitsid FROM odm2.units WHERE unitsname = 'Micromole per Liter'), '3', 'liquidAqueous', '1')RETURNING resultid),newmr AS (INSERT INTO odm2.measurementresults(resultid, censorcodecv, qualitycodecv, aggregationstatisticcv, timeaggregationinterval, timeaggregationintervalunitsid)VALUES ((SELECT newresult.resultid FROM newresult), 'notCensored', 'unknown', 'sporadic', '1', '1157')) INSERT INTO odm2.measurementresultvalues(resultid, datavalue, valuedatetime, valuedatetimeutcoffset)VALUES ((SELECT newresult.resultid FROM newresult), '103.509230848701', '2017-10-06', '-4')RETURNING resultid&quot;</code></pre>
+<pre><code>## [1] &quot;WITH newsf AS (INSERT INTO odm2.samplingfeatures (  samplingfeatureuuid,   samplingfeaturetypecv,   samplingfeaturecode,   samplingfeaturedescription)VALUES (  '603155d9-af21-4210-a8a6-ab1d9b6fc9e5',   'specimen',   'KLH 215',   'HS sample KLH 215 collected at QB on 2017-10-06')RETURNING samplingfeatureid),newrelation AS (INSERT INTO odm2.relatedfeatures (  samplingfeatureid,   relationshiptypecv,   relatedfeatureid)VALUES (  (SELECT newsf.samplingfeatureid FROM newsf),   'isChildOf',   (SELECT samplingfeatureid FROM odm2.samplingfeatures WHERE samplingfeaturecode = 'QB'))),newact AS (INSERT INTO odm2.actions (  actiontypecv,   methodid,   begindatetime,  begindatetimeutcoffset)VALUES (  'specimenCollection',   (SELECT methodid FROM odm2.methods WHERE methodcode = 'HS'),   '2017-10-06',   '-4')RETURNING actionid),newfa AS (INSERT into odm2.featureactions (  samplingfeatureid,   actionid)VALUES (  (SELECT newsf.samplingfeatureid FROM newsf),  (SELECT newact.actionid FROM newact))RETURNING featureactionid),newresult AS (INSERT INTO odm2.results (  featureactionid,  resultuuid,  resulttypecv,  variableid,  unitsid,  processinglevelid,  sampledmediumcv,   valuecount)VALUES (  (SELECT newfa.featureactionid FROM newfa),  '3f5b05c4-978d-44b4-9ba4-b7011c5e7bf9',  'measurement',  (SELECT variableid FROM odm2.variables WHERE variablecode = 'methaneDissolved'),  (SELECT unitsid FROM odm2.units WHERE unitsname = 'Micromole per Liter'),  '3',  'liquidAqueous',  '1')RETURNING resultid),newmr AS (INSERT INTO odm2.measurementresults (  resultid,  censorcodecv,  qualitycodecv,  aggregationstatisticcv,  timeaggregationinterval,  timeaggregationintervalunitsid)VALUES (  (SELECT newresult.resultid FROM newresult),  'notCensored',  'unknown',   'sporadic',   '1',   '1157')) INSERT INTO odm2.measurementresultvalues (  resultid,  datavalue,  valuedatetime,  valuedatetimeutcoffset)VALUES (  (SELECT newresult.resultid FROM newresult),  '103.509230848701',  '2017-10-06',   '-4')RETURNING resultid&quot;</code></pre>
 <p>Then executes the sql into database!</p>
 <pre class="r"><code>dbGetQuery(db, sql)</code></pre>
 </div>
