@@ -11,10 +11,26 @@ read in a google earth kmz file and add point locations as sites to the sampling
 
 1. [Add sample results](https://palmerlab-umd.github.io/choptank-db/insert-sample-results.html): add results from samples with one value in the results
 
+1. [Add a new annotation about a group of sites](https://palmerlab-umd.github.io/choptank-db/insert-site-annotations.html)
+
+---
+
+# Wetland codes
+
+* [Wetland codenames](http://palmerlab-umd.github.io/choptank-db/wetland-codes.html)
+* There is an interactive map of all the sites on [this page](https://palmerlab-umd.github.io/choptank-db/read-samplingfeatures.html).
+
+---
+
+# Water level data
+
+* [preliminary well data](https://palmerlab-umd.github.io/choptank-db/water-level-data.html)
+
 ---
 
 # Maps
 
+* [Sites in database](https://palmerlab-umd.github.io/choptank-db/sites_24-Oct-2017.html) *as of Otober 24, 2017*
 * [Nate's Approximate Well Locations](https://palmerlab-umd.github.io/choptank-db/ApproxWellLoc.html) 
 *as of October 3, 2017*
 
@@ -22,9 +38,9 @@ read in a google earth kmz file and add point locations as sites to the sampling
 
 # Wetland observations
 
-Are you making a wetland visit? Here are some things to potentially take note of:
+Are you making a wetland visit? Here are some things to take note of:
 
-* [categorical observations](https://palmerlab-umd.github.io/choptank-db/categorical-obs.html)
+* [categorical observations](https://palmerlab-umd.github.io/choptank-db/categorical-obs)
 
 
 
