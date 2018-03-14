@@ -8,16 +8,17 @@ editor_options:
   chunk_output_type: console
 ---
 
-# Set up
+# Getting started
 
-Load the necessary libraries and connect to the database. 
+* Format data so each row contains one set of readings from the TDR probe with date, time, sampling location
+* Sampling locations need to already be in the database, need to know their name or code
+* Date and time will need to be in a standardized format. Use the reference info e.g. [here](http://strftime.org/) to determine what format your date and time info is currently in
+* Load the necessary libraries and connect to the database. 
 
 ```{r setup, include=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 password <- scan(".pgpass", what="")
 ```
-
-If the library is not installed on your computer, use `install.packages()`. 
 
 ```{r, message=FALSE}
 library(uuid) # unique ids
@@ -38,37 +39,25 @@ db <- dbConnect(PostgreSQL(),
                  password = password)
 ```
 
-# Description
+# Input data
 
-Soil moisture data from TDR probe
-
-**Structure of input data**
+Read in new data to be inserted into database.
 
 ```{r readdata, message=FALSE}
 sm <- read_csv("../Delmarva/data/sm/Field_measurements - SOIL_field_measurements.csv")
+sm %<>% filter(Date == "March 8, 2018") # filter to subset
 head(sm) %>% kable()
 ```
 
-Make sure that there is a column with the sampling feature codes in the database
+Make sure that there is a column with the exact sampling feature codes in the database. 
 
 ```{r}
-sm %<>% filter(Date == "March 8, 2018")
 sm$samplingfeaturecode <- paste("KLH", paste(sm$Site, sm$Location))
 ```
 
-# database checks
+# Date and time formatting
 
-Make sure all the sites, methods, variables, units are in the database.
-
-```{r}
-dbGetQuery(db, "SELECT * FROM odm2.methods") 
-dbGetQuery(db, "SELECT * FROM odm2.variables")
-dbGetQuery(db, "SELECT * FROM odm2.units WHERE unitsname = 'Percent'")
-dbGetQuery(db, "SELECT * FROM odm2.units WHERE unitsname = 'Degree Celcius'")
-dbGetQuery(db, "SELECT * FROM odm2.units WHERE unitsabbreviation = 'mS/cm'")
-```
-
-# Date formatting
+Add a column called datetime that has the date formatted as POSIXct, and a column for the UTC offset corresponding to the data to be uploaded. 
 
 ```{r}
 sm$date <- strptime(sm$Date, format = "%B %d, %Y", tz = "")
@@ -78,16 +67,38 @@ utcoffset <- as.integer(substr(utcoffset, 1,3))
 sm$utcoffset <- -5 # EST
 ```
 
+# Insert data
+
+Read in the function that constructs the SQL insert statements. See [here](https://github.com/palmerlab-umd/choptank-db/blob/master/insert_soilmoisture_results.R) for details.  
+
 ```{r}
 source("insert_soilmoisture_results.R")
 ```
 
+For now, this function requires having a data frame to be called `sm` and columns named:
 
-```{r}
+* samplingfeaturecode
+* datetime
+* utcoffset
+* VWC_percent
+* soil_EC_mscm
+* soil_temp_C
+
+The actual input to the function is the number row of the `sm` data frame. So to insert the data from the first row, use 
+
+```{r, eval=FALSE}
+insert_soilmoisture_results(1)
+```
+
+To insert data from the whole `sm` data frame, use an `apply` function. 
+
+```{r insert, eval=FALSE}
 lapply(1:nrow(sm), function(x) insert_soilmoisture_results(x))
 ```
 
-# query data
+# Query data
+
+If you want to check to make sure its in the database, you can query the database for example: 
 
 ```{r}
 get_sm_data_site <- function(sitecode = "KLH QB SC B"){
@@ -106,8 +117,10 @@ get_sm_data_site <- function(sitecode = "KLH QB SC B"){
   dbGetQuery(db, sql)
 }
 
-get_sm_data_site(sitecode = "KLH QB SC E")
+get_sm_data_site(sitecode = "KLH QB SC E") %>% head() %>% kable()
 ```
+
+Or get all the soil data: 
 
 ```{r}
 get_sm_data <- function(){
@@ -128,6 +141,9 @@ get_sm_data <- function(){
 sm_db <- get_sm_data()
 ```
 
+```{r}
+DT::datatable(sm_db)
+```
 
 
 
