@@ -148,7 +148,7 @@ insert_soilmoisture_results <- function(x){
     '
     # create SQL statement
     sql <- sprintf(sql_blanks,
-                   "instrumentDeployment", "TDR", sm$datetime[x], utcoffset,
+                   "instrumentDeployment", "TDR", sm$datetime[x], sm$utcoffset[x],
                    sm$samplingfeaturecode[x],
                    # results
                    UUIDgenerate(), "measurement", 1, "soil", 1,
@@ -156,11 +156,11 @@ insert_soilmoisture_results <- function(x){
                    UUIDgenerate(), "measurement", 1, "soil", 1,
                    # Measurement results
                    "notCensored", "unknown", "sporadic", 1, 1157,
-                   sm$VWC_percent[x], sm$datetime[x], utcoffset,
+                   sm$VWC_percent[x], sm$datetime[x], sm$utcoffset[x],
                    "notCensored", "unknown", "sporadic", 1, 1157,
-                   sm$soil_EC_mscm[x], sm$datetime[x], utcoffset,
+                   sm$soil_EC_mscm[x], sm$datetime[x], sm$utcoffset[x],
                    "notCensored", "unknown", "sporadic", 1, 1157,
-                   sm$soil_temp_C[x], sm$datetime[x], utcoffset
+                   sm$soil_temp_C[x], sm$datetime[x], sm$utcoffset[x]
     )  # remove line endings
     sql <- gsub("\n", "", sql)
     # insert into database

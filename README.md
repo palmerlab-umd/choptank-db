@@ -13,6 +13,8 @@ read in a google earth kmz file and add point locations as sites to the sampling
 
 1. [Add a new annotation about a group of sites](https://palmerlab-umd.github.io/choptank-db/insert-site-annotations.html)
 
+1. [Insert soil moisture measurements from TDR probe](https://palmerlab-umd.github.io/choptank-db/insert-sm-data.html)
+
 ---
 
 # Wetland codes
