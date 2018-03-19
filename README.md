@@ -35,29 +35,19 @@ read in a google earth kmz file and add point locations as sites to the sampling
 
 ---
 
-# Wetland codes
+### Site information
 
 * [Wetland codenames](http://palmerlab-umd.github.io/choptank-db/wetland-codes.html)
-* [Sites](http://palmerlab-umd.github.io/choptank-db/current sites.html) *updated March 19, 2018*
-* There is an interactive map of all the sites on [this page](https://palmerlab-umd.github.io/choptank-db/read-samplingfeatures.html).
-
----
-
-# Water level data
-
-* [preliminary well data](https://palmerlab-umd.github.io/choptank-db/water-level-data.html)
-
----
-
-# Maps
-
-* [Sites in database](https://palmerlab-umd.github.io/choptank-db/sites_19-March-2018.html) *as of March 19, 2018*
-* [Nate's Approximate Well Locations](https://palmerlab-umd.github.io/choptank-db/ApproxWellLoc.html) 
+* [Table of all Sites](http://palmerlab-umd.github.io/choptank-db/current-sites.html) *updated March 19, 2018*
+* [Map of Sites in database](https://palmerlab-umd.github.io/choptank-db/sites_19-March-2018.html) *as of March 19, 2018*
+* [Map of Nate's Approximate Well Locations](https://palmerlab-umd.github.io/choptank-db/ApproxWellLoc.html) 
 *as of October 3, 2017*
 
---- 
+---
 
-# Wetland observations
+## Data
+
+* [preliminary well data](https://palmerlab-umd.github.io/choptank-db/water-level-data.html)
 
 Are you making a wetland visit? Here are some things to take note of:
 
