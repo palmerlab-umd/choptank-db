@@ -1,24 +1,24 @@
 ---
-title: "How to add new sampling sites to the choptank database"
+title: "Add new sampling sites from Google Earth file"
 output:
   html_document:
     toc: true
     toc_float:
         collapsed: FALSE
+editor_options: 
+  chunk_output_type: console
 ---
 
 # Introduction 
 
-This document is a guide for adding or updating site locations to the Choptank database. The database uses the ODM2 framework schema and vocabulary. Please note, this document is only intended to be used as a guide to *assist* in the development of your *own* scripts [e.g., eat your vegetables].   
-
 __Sites__ are a type of *sampling feature* and are uniquely identified by a unique short code (e.g. a 2-letter code identifying each wetland) as well as a computer-generated universally unique ID (uuid). We can also include a longer name, description, and spatial information. 
 
-In general, the steps of this process are:
+The general process comprises:
 
 1. Read in spatial data with site locations
-2. Add uuids and rename columns to match database table
-3. Convert the spatial information to well-known text (WKT)
-4. Append this data frame to the sampling features table in the database
+1. Add uuids and rename columns to match database table
+1. Convert the spatial information to well-known text (WKT)
+1. Append this data frame to the sampling features table in the database
 
 # Set up
 
@@ -38,11 +38,12 @@ library(sf) # spatial
 library(uuid) # unique ids
 library(RPostgreSQL) # database
 library(knitr)
+library(DT)
 ```
 
 ## Connect to the database
 
-Use `dbConnect()` to create an object called `db` for interacting with the database. To get familiar with the database, see the document on general database interactions [Forthcoming from Kelly]. 
+See [here](https://palmerlab-umd.github.io/choptank-db/connect.html) for details.
 
 ```{r, include=FALSE}
 db <- dbConnect(PostgreSQL(), 
@@ -51,31 +52,28 @@ db <- dbConnect(PostgreSQL(),
                  password = password)
 ```
 
-
 # Read in your data
 
 This example uses a `.kmz` file created from Google Earth. 
 
 ```{r}
-path = "/nfs/palmer-group-data/Choptank/data"
-new_sites <- readOGR(file.path(path, "Soil_Chambers.kmz"))
+new_sites <- readOGR(dsn = "sites_6-Nov-2017.kmz")
 ```
 
 > `new_sites` is a spatial polygons data frame, where the dataframe contains columns called *Name* and *description* from google earth file. 
 
-### Match column names to database table
+### Match column names to database fields
 
 Now make data frame to append to sampling features table. Refer to the [ODM2 documentation](http://odm2.github.io/ODM2/schemas/ODM2_Current/tables/ODM2Core_SamplingFeatures.html) for more details on each of the columsn in this table. 
 
-* code is the short 2 letter name
-* name is a longer informative name
-* type is site for locations (compared to speciment for samples)
+* **code** is the short 2 letter name
+* **name** is a longer informative name
+* **type** is "site" for sampling locations (compared to specimen for collected samples)
 * [FEATURE TYPE CV](http://vocabulary.odm2.org/samplingfeaturetype/)
-* for point data: convert geometry to a vector of well-known text (WKT) using writeWKT
+* for point data: convert geometry to a vector of well-known text (WKT) using `writeWKT()`. More options for spatial information in additional tables in the [sampling features extension](https://github.com/ODM2/ODM2/blob/master/doc/ODM2Docs/ext_samplingfeatures.md)
 
 ```{r}
 new_samp_features <- data.frame("samplingfeaturecode" = new_sites$Name,
-                                "samplingfeaturedescription" = new_sites$description,
                                 "samplingfeaturename" = new_sites$Name,
                                 "samplingfeaturetypecv" = "site",
                                 "featuregeometrywkt" = writeWKT(new_sites, byid = TRUE),
@@ -86,26 +84,12 @@ new_samp_features <- data.frame("samplingfeaturecode" = new_sites$Name,
 
 ```{r, results='asis'}
 new_samp_features$samplingfeatureuuid <- sapply(1:nrow(new_samp_features), UUIDgenerate)
+
 kable(new_samp_features[1:5,])
 ```
 
 
-# Connect to database and append sampling features table
-
-```{r}
-# list all database tables
-# dbListTables(db)
-# list columns in sampling features table
-dbListFields(db, c("odm2", "samplingfeatures"))
-# all sampling features
-# dbGetQuery(db, "SELECT * FROM odm2.samplingfeatures")
-# current sites 
-sites <- dbGetQuery(db, "SELECT * FROM odm2.samplingfeatures WHERE samplingfeaturetypecv = 'site'")
-```
-
-```{r, results='asis'}
-kable(sites[1:5,])
-```
+# Append sampling features table
 
 This is the code for updating the table. Running the code within the chunk should update the database. It is not evaluated when the markdown is knit because of the `eval=FALSE` chunk setting, for the purposes of this documentation. 
 
@@ -117,10 +101,14 @@ dbWriteTable(db, c("odm2","samplingfeatures"),
              append = TRUE)
 ```
 
-If you want to see if they are there now
+# Current sites
 
-```{r, eval=FALSE}
-dbGetQuery(db, "SELECT * FROM ODM2.samplingfeatures")
+```{r, warning=FALSE, message=FALSE}
+sites <- dbGetQuery(db, "SELECT * FROM odm2.samplingfeatures WHERE samplingfeaturetypecv = 'site'")
+```
+
+```{r, results='asis', echo=FALSE}
+datatable(sites)
 ```
 
 Don't forget to disconnect at the end
@@ -128,4 +116,5 @@ Don't forget to disconnect at the end
 ```{r}
 dbDisconnect(db)
 ```
+
 
