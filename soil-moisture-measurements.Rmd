@@ -1,0 +1,182 @@
+---
+title: "Soil moisture measurements"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Set up
+
+Go through this document one chunk at a time to insert new soil moisture measurements data into the database. 
+
+First, load the necessary libraries
+
+```{r}
+library(RPostgreSQL)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(uuid)
+```
+
+Then connect to the database
+
+```{r}
+password <- scan(".pgpass", what="")
+
+db <- dbConnect(PostgreSQL(), 
+                host = "sesync-postgis01.research.sesync.org",
+                dbname = "choptank", 
+                user = "palmergroup",
+                password = password)
+```
+
+Run these files to define functions to use later. 
+
+```{r}
+source("db_insert_measurements.R")
+source("helpers.R")
+```
+
+# Upload and prepare data
+
+Upload the spreadsheet with your new soil moisture data. 
+
+```{r}
+new_measurements <- read_csv("../odm2-samples/data/Field_measurements - SOIL_field_measurements.csv")
+```
+
+Make sure the column names for data match the template. This chunk should return `TRUE`.
+
+```{r}
+all(c("VWC_percent", "soil_EC_mscm", "soil_temp_C") %in% names(new_measurements))
+```
+
+Make a new column with site code names called samplingfeaturecode if it isn't there already. 
+
+```{r}
+new_measurements$samplingfeaturecode <- paste(new_measurements$Site, new_measurements$Location)
+```
+
+Make sure all the sites in the new data are in the database by reading in the samplingfeatures table and checking all the site code names in the new data. The function check_samplingfeaturecodes is defined in the `helpers.R`. That function returns the names of any sites not in the database. 
+
+```{r}
+samplingfeatures <- dbReadTable(db, c("odm2", "samplingfeatures"))
+
+check_samplingfeaturecodes(new_codes = new_measurements$samplingfeaturecode)
+```
+
+If you need help, look for site names with a given pattern. 
+
+```{r}
+get_site_names_like("QB SC")
+```
+
+Fix site code names if needed. For example, soil chamber sites might need hyphens added. 
+
+```{r}
+new_measurements$samplingfeaturecode <- gsub(pattern = "SC ", "SC-", new_measurements$samplingfeaturecode)
+```
+
+Check site names again if needed. 
+
+```{r}
+check_samplingfeaturecodes(new_measurements$samplingfeaturecode)
+```
+
+There needs to be a defined method in the methods table about how samples were collected. Make sure that sample collection method exists and note the **methodcode** or make a new one with the `db_add_method()` function. 
+
+```{r}
+dbReadTable(db, c("odm2", "methods"))
+```
+
+```{r, eval=FALSE}
+# db_add_method(methodname = "Soil moisture measurement",
+#               methodcode = "soilmoistureTDR",
+#               methodtypecv = "Instrument deployment",
+#               methoddescription = "Point measurement of soil moisture using TDR probe with 1.5 inch probes")
+```
+
+Save the methodcode as a variable
+
+```{r}
+methodcode = "soilmoistureTDR"
+```
+
+Actions need a correctly formatted date and time. Format the date and time. If no time is given, assume midnight (to know that it isn't a specific time). Also define the UTC offset variable (assuming it is the same as your computer's timezone). Use `?strptime` to find the correct character string for the input data or refer to [strtime.org](http://strftime.org/)
+
+```{r}
+new_measurements$datetime <- strptime(
+  paste(new_measurements$Date, new_measurements$Time),
+  format = "%B %d, %Y %H:%M:%S", tz = "")
+```
+
+Define UTC offset as a variable.
+
+```{r}
+utcoffset <- format(Sys.time(), "%z") %>% substr(1, 3) %>% as.integer()
+```
+
+Make any new annotations to use based on notes about samples using `db_add_anotation()`. (Placeholder for Kelly to add function for adding action annotations)
+
+```{r, eval=FALSE}
+# dbReadTable(db, c("odm2", "cv_annotationtype"))
+# db_add_annotation(annotationtypecv = "Action annotation",
+#                   annotationtext = "measured less than 24 hours after rain")
+```
+
+# Insert measurements data
+
+Specify some necessary metadata parameters. Maybe add this to the function so its not cluttering up this document. 
+
+```{r}
+actiontypecv = "Instrument deployment"
+resulttypecv = "Measurement"
+censorcodecv = "Not censored"
+qualitycodecv = "Unknown"
+aggregationstatisticcv = "Sporadic"
+timeaggregationinterval = 1 # assume 1 minute
+timeaggregationintervalunitsid = dbGetQuery(db, "SELECT unitsid FROM odm2.units WHERE unitsname = 'Minute'") # minute
+processlinglevelid = 1 # definition = "Raw data" # processinglevelcode = 0
+valuecount = 1
+sampledmediumcv = "Soil"
+```
+
+Load function to insert measurement results (db_insert_measurements) and run function over all rows in dataframe. This is where the magic happens!
+
+```{r, eval=FALSE}
+# db_insert_measurements_sm(1) # for just one measurement
+
+sapply(1:nrow(new_measurements),
+       function(x) db_insert_measurements_sm(x))
+```
+
+Use this chunk to make a data frame called sm_db with all the soil data in the database
+
+```{r}
+get_sm_data <- function(){
+  
+  sql <- paste0("SELECT mrv.datavalue, mrv.valuedatetime, sf.samplingfeaturecode, r.featureactionid, v.variablecode, u.unitsname
+ FROM odm2.measurementresultvalues mrv, odm2.results r, odm2.variables v, odm2.units u, odm2.samplingfeatures sf, odm2.featureactions fa
+ WHERE r.variableid = v.variableid 
+ AND r.featureactionid = fa.featureactionid
+ AND fa.samplingfeatureid = sf.samplingfeatureid
+ AND r.unitsid = u.unitsid
+ AND mrv.resultid = r.resultid 
+ AND r.sampledmediumcv = 'Soil'")
+
+  sql <- gsub("\n", "", sql)
+  dbGetQuery(db, sql)
+}
+
+sm_db <- get_sm_data()
+```
+
+organize back to the original format using the spread function in the tidyr package
+
+```{r}
+sm_db_spread <- sm_db %>% group_by(samplingfeaturecode) %>%
+  dplyr::select(-unitsname) %>%
+  spread(variablecode, datavalue)
+```
+
