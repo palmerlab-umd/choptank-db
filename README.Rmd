@@ -31,13 +31,19 @@ This website contains links and information for interacting with the Choptank Hy
 * [Map of Nate's Approximate Well Locations](https://palmerlab-umd.github.io/choptank-db/ApproxWellLoc.html) 
 *as of October 3, 2017*
 
-### Samples information
+### Samples
 
 * [List of samples in database](https://palmerlab-umd.github.io/choptank-db/samples.html) *as of May 25, 2018*
 
 ### Methods
 
 * [List of methods in database](https://palmerlab-umd.github.io/choptank-db/methods.html) *as of May 25, 2018*
+
+---
+
+### Guides
+
+* [Insert soil moisture data](https://palmerlab-umd.github.io/choptank-db/soil-moisture-measurements.html)
 
 ---
 
