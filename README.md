@@ -25,7 +25,7 @@ This website contains links and information for interacting with the Choptank Hy
 
 ### Sites information
 
-* [List of sites in database](https://palmerlab-umd-github.io/choptank-db/sites.html) *as of May 25, 2018*
+* [List of sites in database](https://palmerlab-umd.github.io/choptank-db/sites.html) *as of May 25, 2018*
 * [Network of sites and site relationships](https://palmerlab-umd.github.io/choptank-db/sites-network.html) *as of May 25, 2018*
 * [Map of survey points from March 13-15](https://palmerlab-umd.github.io/choptank-db/survey_pts.html)
 * [Map of Nate's Approximate Well Locations](https://palmerlab-umd.github.io/choptank-db/ApproxWellLoc.html) 
@@ -33,11 +33,11 @@ This website contains links and information for interacting with the Choptank Hy
 
 ### Samples information
 
-* [List of samples in database](https://palmerlab-umd-github.io/choptank-db/samples.html) *as of May 25, 2018*
+* [List of samples in database](https://palmerlab-umd.github.io/choptank-db/samples.html) *as of May 25, 2018*
 
 ### Methods
 
-* [List of methods in database](https://palmerlab-umd-github.io/choptank-db/methods.html) *as of May 25, 2018*
+* [List of methods in database](https://palmerlab-umd.github.io/choptank-db/methods.html) *as of May 25, 2018*
 
 ---
 
