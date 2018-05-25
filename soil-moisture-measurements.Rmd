@@ -55,7 +55,7 @@ new_measurements <- file.choose()
 Or supply the file path: 
 
 ```{r, message=FALSE}
-new_measurements <- read_csv("../odm2-samples/data/Field_measurements - SOIL_field_measurements.csv")
+new_measurements <- read_csv("../Kelly/data/Field_measurements - SOIL_field_measurements.csv")
 ```
 
 The `new_measurements` data frame should look something like this: 
