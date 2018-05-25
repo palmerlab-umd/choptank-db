@@ -1,9 +1,16 @@
 
-# measurements for soil moisture
-# insert new action using method = TDR
+# insert measurements for soil moisture from new_measurements dataframe
+# insert new action using method = soilmoistureTDR
 # RETURNING actionid
-# insert new feature action with new actionid 
-
+# insert new feature action with new actionid
+# RETURNING featureactionid
+# insert 3 new results with new featureactionid
+# insert measurement results for volumetric water content
+# insert measurement result values for volumetric water content
+# insert measurement results for soil temp
+# insert measurement result values for soil temp
+# insert measurement results for soil conductivity
+# insert measurement result values for soil conductity
 
 db_insert_measurements_sm <- function(x){
   

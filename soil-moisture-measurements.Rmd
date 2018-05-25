@@ -172,7 +172,7 @@ sampledmediumcv = "Soil"
 
 # Insert measurements data
 
-This is where the magic happens! The function `db_insert_measurements()` writes and runs SQL code to upload data from one row of the new_measurements data frame at a time. So `db_insert_measurements(1)` would insert data from the first row. Use an apply statement to upload all of the data at once. The `eval=FALSE` argument means that this code will not run if you knit the whole document. 
+This is where the magic happens! The function `db_insert_measurements_sm()` writes and runs SQL code to upload data from one row of the new_measurements data frame at a time. So `db_insert_measurements_sm(1)` would insert data from the first row. Use an apply statement to upload all of the data at once. The `eval=FALSE` argument means that this code will not run if you knit the whole document. 
 
 ```{r, eval=FALSE}
 # db_insert_measurements_sm(1) # for just one measurement
