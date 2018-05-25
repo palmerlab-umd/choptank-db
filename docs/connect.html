@@ -222,11 +222,9 @@ div.tocify {
 
 <div id="connect" class="section level1">
 <h1>Connect</h1>
-<p>The <code>choptank</code> database is hosted on the sesync postgis database server. You can connect using the <code>RPostgreSQL</code> package when you are on the network at SESYNC, logged into VPN, or through the SESYNC RStudio server at <a href="https://rstudio.sesync.org/">rstudio.sesync.org</a> with your sesync log-in credentials.</p>
 <p>First load the <code>RPostgreSQL</code> library in order to access its functions.</p>
 <pre class="r"><code>library(RPostgreSQL)</code></pre>
 <pre><code>## Loading required package: DBI</code></pre>
-<p>Then use the <code>dbConnect()</code> function to establish a connection “object” to the database, which will allow sending and receiving information from the database.</p>
 <div id="password" class="section level2">
 <h2>Password</h2>
 <p>In addition to the type, location, and name of the databse, you need to specify a username and password. The username is <code>palmergroup</code>. The password should be saved in a hidden file in your home directory so that it does not accidentally get shared. If you have the password saved as plain text in a file called <code>.pgpass</code>, you can read it in as character string using the <code>scan()</code> function:</p>
@@ -235,16 +233,17 @@ div.tocify {
 </div>
 <div id="create-connection-object" class="section level2">
 <h2>Create connection object</h2>
-<p>Once you have the password object in your R Environment, create a database connection using the <code>dbConnect()</code> function. (You can use any valid object name, it doesn’t have to be <code>db</code>).</p>
+<p>Once you have the password, create a database connection using the <code>dbConnect()</code> function. These guides will always use the name <code>db</code> for the connection object. All of the functions that send and receive information from the database will have this as the first argument.</p>
 <pre class="r"><code>db &lt;- dbConnect(PostgreSQL(), 
                 host = &quot;sesync-postgis01.research.sesync.org&quot;,
                 dbname = &quot;choptank&quot;, 
                 user = &quot;palmergroup&quot;,
                 password = password)</code></pre>
-</div>
-</div>
-<div id="queries" class="section level1">
-<h1>Queries</h1>
+<p><strong>Some examples to see if it’s working</strong></p>
+<p>This function will list all of the tables in the database.</p>
+<pre class="r"><code>dbListTables(db) %&gt;% head()</code></pre>
+<pre><code>## [1] &quot;spatial_ref_sys&quot;       &quot;topology&quot;              &quot;layer&quot;                
+## [4] &quot;geocode_settings&quot;      &quot;direction_lookup&quot;      &quot;secondary_unit_lookup&quot;</code></pre>
 <p>If you want to read a whole table from the database into your R environment, you can use <code>dbReadTable()</code>.</p>
 <pre class="r"><code>samplingfeatures &lt;- dbReadTable(db, c(&quot;odm2&quot;, &quot;samplingfeatures&quot;))</code></pre>
 <pre><code>## Warning in postgresqlExecStatement(conn, statement, ...): RS-DBI driver
@@ -252,217 +251,10 @@ div.tocify {
 <pre><code>## Warning in postgresqlExecStatement(conn, statement, ...): RS-DBI driver
 ## warning: (unrecognized PostgreSQL field type geometry (id:114457131) in
 ## column 7)</code></pre>
-<div id="list-tables" class="section level2">
-<h2>List Tables</h2>
-<p>This function will list all of the tables in the database.</p>
-<pre class="r"><code>dbListTables(db) %&gt;% head()</code></pre>
-<pre><code>## [1] &quot;actionby&quot;         &quot;spatial_ref_sys&quot;  &quot;actions&quot;         
-## [4] &quot;topology&quot;         &quot;layer&quot;            &quot;geocode_settings&quot;</code></pre>
-<p>Tables within the database are organized into <strong>schemas</strong>. There are extra tables besides the ODM2 schema in the choptank database e.g. to help deal with spatial information.</p>
-<p>This is important because you need to refer to tables <em>within schemas</em> when making queries.</p>
-</div>
-<div id="fields" class="section level2">
-<h2>Fields</h2>
-<p>For example, the <code>dbListFields()</code> function will list the field names (i.e. column names) of a table. Refer to the name of the samplingfeatures table using both the schema name and the table name:</p>
-<pre class="r"><code>dbListFields(conn = db, name = c(&quot;odm2&quot;, &quot;samplingfeatures&quot;))</code></pre>
-<pre><code>##  [1] &quot;samplingfeatureid&quot;          &quot;samplingfeatureuuid&quot;       
-##  [3] &quot;samplingfeaturetypecv&quot;      &quot;samplingfeaturecode&quot;       
-##  [5] &quot;samplingfeaturename&quot;        &quot;samplingfeaturedescription&quot;
-##  [7] &quot;samplingfeaturegeotypecv&quot;   &quot;featuregeometry&quot;           
-##  [9] &quot;featuregeometrywkt&quot;         &quot;elevation_m&quot;               
-## [11] &quot;elevationdatumcv&quot;</code></pre>
-</div>
-<div id="run-queries" class="section level2">
-<h2>Run queries</h2>
-<p><code>dbGetQuery()</code> is the main function to use to send SQL statements to the database.</p>
-<p>If you are writing SQL commands, use the format <code>schema.table</code> to refer to tables:</p>
-<pre class="r"><code>dbGetQuery(db, &quot;SELECT * FROM odm2.samplingfeatures LIMIT 10&quot;)</code></pre>
-<table>
-<thead>
-<tr class="header">
-<th align="right">samplingfeatureid</th>
-<th align="left">samplingfeatureuuid</th>
-<th align="left">samplingfeaturetypecv</th>
-<th align="left">samplingfeaturecode</th>
-<th align="left">samplingfeaturename</th>
-<th align="left">samplingfeaturedescription</th>
-<th align="left">samplingfeaturegeotypecv</th>
-<th align="left">featuregeometry</th>
-<th align="left">featuregeometrywkt</th>
-<th align="right">elevation_m</th>
-<th align="left">elevationdatumcv</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="right">227</td>
-<td align="left">5d483e06-b810-11e7-95fb-001dd8b71c2d</td>
-<td align="left">site</td>
-<td align="left">KLH QB SC B</td>
-<td align="left">Soil chamber QB SC B</td>
-<td align="left">2nd most interior of 5 soil chambers on transect 5m apart (approximate location)</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8345276189573383 39.0544974094512867)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">228</td>
-<td align="left">f1d44318-c41c-43a0-99ab-f8aa2eb5020a</td>
-<td align="left">site</td>
-<td align="left">KLH QB SC E</td>
-<td align="left">Soil chamber QB SC E</td>
-<td align="left">most upland of 5 soil chambers on transect 5m apart (approximate location)</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8343348231713748 39.0544029037487874)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">229</td>
-<td align="left">086c25b8-1d42-4fae-b7d3-7a5c951d7d7a</td>
-<td align="left">site</td>
-<td align="left">KLH QB SC C</td>
-<td align="left">Soil chamber QB SC C</td>
-<td align="left">middle of 5 soil chambers on transect 5m apart (approximate location)</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8344736499219891 39.0544580928631575)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">230</td>
-<td align="left">59138be4-57ad-468f-9f26-b80426712df7</td>
-<td align="left">site</td>
-<td align="left">KLH QB SC A</td>
-<td align="left">Soil chamber QB SC A</td>
-<td align="left">most interior of 5 soil chambers on transect 5m apart (approximate location)</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8345809369696013 39.0545292778680420)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">231</td>
-<td align="left">4181b472-80ee-475f-8c0c-9baf8215aa07</td>
-<td align="left">site</td>
-<td align="left">KLH QB SC D</td>
-<td align="left">Soil chamber QB SC D</td>
-<td align="left">2nd most upland of 5 soil chambers on transect 5m apart (approximate location)</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8343937912614052 39.0544290909816567)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">232</td>
-<td align="left">431352a9-5f19-48e0-960f-f744b453b45d</td>
-<td align="left">site</td>
-<td align="left">KLH JA SC A</td>
-<td align="left">Soil chamber JA SC A</td>
-<td align="left">most interior of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8258489541192660 39.0651438211572426)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">233</td>
-<td align="left">744d3afe-2193-4272-a670-bac3780b1825</td>
-<td align="left">site</td>
-<td align="left">KLH JA SC B</td>
-<td align="left">Soil chamber JA SC B</td>
-<td align="left">center of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8257577914992567 39.0651264271237224)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">234</td>
-<td align="left">3ef35072-4de4-46dc-bd66-14c142cd1470</td>
-<td align="left">site</td>
-<td align="left">KLH JA SC C</td>
-<td align="left">Soil chamber JA SC C</td>
-<td align="left">most upland of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8256756185791119 39.0651040530023792)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="odd">
-<td align="right">235</td>
-<td align="left">f90350e6-4601-48e6-9282-d0f1238ffe21</td>
-<td align="left">site</td>
-<td align="left">KLH JB SC A</td>
-<td align="left">Soil chamber JB SC A</td>
-<td align="left">most interior of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8252580658446504 39.0642207451372130)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-<tr class="even">
-<td align="right">236</td>
-<td align="left">0b6e350d-7ca8-4c97-b1d2-efe6cf1370c0</td>
-<td align="left">site</td>
-<td align="left">KLH JB SC B</td>
-<td align="left">Soil chamber JB SC B</td>
-<td align="left">middle of 3 soil chambers along transect 5m apart (approximate location)</td>
-<td align="left">point</td>
-<td align="left">NA</td>
-<td align="left">POINT (-75.8252157474444886 39.0641757201476665)</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-</tr>
-</tbody>
-</table>
-<p>Note that you will get an error if you try to <code>SELECT</code> from an empty table.</p>
-</div>
-</div>
-<div id="disconnect" class="section level1">
-<h1>Disconnect</h1>
-<p>Disconnect at the end of your session to free up resources.</p>
+<p>Disconnect at the end of your session</p>
 <pre class="r"><code>dbDisconnect(db)</code></pre>
+<pre><code>## [1] TRUE</code></pre>
 </div>
-<div id="writing-sql" class="section level1">
-<h1>Writing SQL</h1>
-<p>Send and receive information from the database using the <code>dbGetQuery()</code> function and a character string of SQL code.</p>
-<p>For example, the whole units table seemed to not download from the <a href="http://vocabulary.odm2.org/units/">ODM2 page</a>. This SQL code would insert new values into the units table. When this statement was executed, a new unitsid was automatically created.</p>
-<pre class="r"><code>sql &lt;- &quot;INSERT INTO odm2.units (unitstypecv, unitsabbreviation, unitsname) VALUES ('Time', 'min', 'Minute')&quot;</code></pre>
-<p>If you have multiple lines of SQL, make sure to remove line endings before executing the SQL.</p>
-<pre class="r"><code>sql &lt;- paste(&quot;SQL GOES HERE&quot;)
-
-sql &lt;- gsub(&quot;\n&quot;, &quot;&quot;, sql)
-
-dbGetQuery(db, sql)</code></pre>
-<p>To see the whole SQL statement, save sql character string as a text file.</p>
-<pre class="r"><code>write(sql, &quot;sql.txt&quot;)</code></pre>
-</div>
-<div id="making-new-tables" class="section level1">
-<h1>Making new tables</h1>
-<p>The following code creates a dataframe, writes that table to the database as a table called “test”, reads the table, and then removes it.</p>
-<pre class="r"><code>testdf &lt;- data.frame(a = &quot;cat&quot;, b = &quot;dog&quot;, c = &quot;monkey&quot;)
-
-dbWriteTable(db, &quot;test&quot;, testdf, row.names=FALSE)
-
-dbReadTable(db, &quot;test&quot;)
-
-dbRemoveTable(db, &quot;test&quot;)</code></pre>
-<p><strong>More resources</strong></p>
-<ul>
-<li><a href="http://www.win-vector.com/blog/2016/02/using-postgresql-in-r/" class="uri">http://www.win-vector.com/blog/2016/02/using-postgresql-in-r/</a></li>
-<li><a href="https://www.nceas.ucsb.edu/system/files/rpostgresql.txt" class="uri">https://www.nceas.ucsb.edu/system/files/rpostgresql.txt</a></li>
-</ul>
 </div>
 
 

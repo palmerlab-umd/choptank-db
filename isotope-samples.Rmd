@@ -1,0 +1,234 @@
+---
+title: "Isotope Samples"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Set up
+
+Go through this document one chunk at a time to insert new isotope data into the database. First, connect to the database, load libraries, and load all of the functions in [rodm2](https://github.com/khondula/rodm2).
+
+```{r}
+library(RPostgreSQL)
+library(readr)
+library(dplyr)
+library(tidyr)
+library(uuid)
+# source("load_rodm2_functions.R")
+```
+
+# Upload and prepare data
+
+Upload the spreadsheet with your new sample data. 
+
+```{r}
+new_samples <- read_csv("data/Copy of Isotopes_4Kelly.csv")
+```
+
+Make a column `sample_code` that will be unique sample IDs. 
+
+```{r}
+new_samples$sample_code <- new_samples$sample_name
+```
+
+Then make sure that the sample codes don't already exist in the database by loading the samplingfeatures table and comparing the samplingfeaturecode column to the new_samples sample code column. (If they do exist and new results are being added, skip ahead to **Insert sample results data**.)
+
+```{r}
+samplingfeatures <- dbReadTable(db, c("odm2", "samplingfeatures"))
+
+data.frame(sample_code = new_samples$sample_code,
+           in_db = new_samples$sample_code %in% samplingfeatures$samplingfeaturecode) %>%
+  dplyr::filter(in_db) %>% arrange(sample_code)
+```
+
+Then also make sure that parent sampling features exist (i.e. the sites that the samples were collected from). 
+
+Sites not in database: 
+
+```{r}
+data.frame(sample_site = new_samples$origin_site,
+           in_db = new_samples$origin_site %in% samplingfeatures$samplingfeaturecode) %>%
+  dplyr::filter(!in_db) %>% arrange(sample_site)
+```
+
+DO, DW, JA or JB, JB or JA, ML, P1, TM
+
+There needs to be a defined method in the methods table about how samples were collected. Make sure that sample collection method exists and note the **methodcode** or make a new one with the `db_add_method()` function. 
+
+```{r}
+dbReadTable(db, c("odm2", "methods"))
+methodcode = "waterisotopefield"
+```
+
+
+```{r, eval=FALSE}
+db_add_method(methodname = "water isotope sample collection",
+              methodcode = "waterisotopesample",
+              methodtypecv = "Specimen collection",
+              methoddescription = "Collect water sample without headspace for water isotopes")
+
+```
+
+There needs to be a correctly formatted date and time of the sample collection action. Format the date and time. If no time is given, assume midnight (to know that it isn't a specific time). Also define the UTC offset variable. 
+
+```{r}
+utcoffset <- format(Sys.time(), "%z")
+utcoffset <- as.integer(substr(utcoffset, 1,3))
+new_samples$datetime <- strptime(paste(new_samples$origin_sample_date, "12:00:00"),
+         format = "%Y-%m-%d %H:%M:%S", tz = "")
+```
+
+Make any new annotations to use based on notes about samples using `db_add_anotation()`
+
+```{r, eval=FALSE}
+dbReadTable(db, c("odm2", "cv_annotationtype"))
+db_add_annotation(annotationtypecv = "Specimen annotation",
+                  annotationtext = "collected less than 24 hours after rain")
+db_add_annotation(annotationtypecv = "Specimen annotation",
+                  annotationtext = "collected before forecast rain")
+```
+
+Add a column of unique UUIDs.
+
+```{r}
+new_samples$new_samples_uuid <- sapply(1:nrow(new_samples), UUIDgenerate)
+```
+
+Make a descriptive name for each sample (not required)
+
+```{r}
+new_samples$sample_description <- paste("Water isotope sample",
+                                        new_samples$sample_name,
+                                        "collected from",
+                                        new_samples$sample_category,
+                                        "at site",
+                                        new_samples$origin_site,
+                                        "on",
+                                        new_samples$origin_sample_date
+                                        )
+```
+
+Define some necessary parameters for the specimens table.
+
+```{r}
+specimentypecv = "Grab"
+specimenmediumcv = "Liquid aqueous"
+isfieldspecimen = TRUE
+```
+
+# Insert sample collection actions.
+
+Load function `db_insert_samples()` if not already loaded, and run it over each line in the new samples data frame. This creates a new specimen in the sampling feature table for each sample, relates them each to the site they were collected at (`origin_site`), and makes a feature action of when the sample was collected. 
+
+```{r, eval=FALSE}
+source("db_insert_samples.R")
+sapply(2:nrow(new_samples), function(x) db_insert_samples(x))
+```
+
+Then add any annotations about samples or sample collection. 
+
+```{r}
+new_annotations <- new_samples %>% 
+  dplyr::select(sample_code, notes) %>%
+  dplyr::filter(!is.na(notes)) %>%
+  rename("samplingfeaturecode" = sample_code,
+         "annotation" = notes)
+
+new_annotations$annotation <- gsub(" <", "less than", new_annotations$annotation)
+
+# make sure the annotations exist in the database
+new_annotations$annotation %in% 
+  dbGetQuery(db, "SELECT annotationtext from odm2.annotations")$annotationtext
+
+```
+
+insert annotations
+
+```{r, eval=FALSE}
+sapply(1:nrow(new_annotations), function(x) insert_samplingfeature_annotations(x))
+```
+
+
+# Insert sample results data
+
+After the samples exist in the database and have sample collection feature actions, results are associated with new sample analysis feature actions. 
+
+Check that the necssary methods and variables exist in the database and make a note of the code names. 
+
+```{r, eval=FALSE}
+db_add_method(methodtypecv = "Specimen analysis",
+  methodcode = "waterisotopelab",
+  methodname = "Picarro L1102-i",
+  methoddescription = "D-18O and  D-D ratios measured using a cavity ringdown spectroscopic liquid water laser isotope analyzer (Picarro L1102-i) in the Virginia Tech Water Quality Lab housed within the Biological Systems Engineering Department.")
+```
+
+add new variables for d180 and dD
+
+```{r, eval=FALSE}
+# dbReadTable(db, c("odm2", "cv_variabletype"))$name
+db_add_variable(variabletypecv = "Stable isotopes",
+                variablecode = "delta_18OOfH2O",
+                variabledefinition = "Isotope 18O of water",
+                variablenamecv = "delta-18O of H2O")
+db_add_variable(variabletypecv = "Stable isotopes",
+                variablecode = "delta_DOfH2O",
+                variabledefinition = "hydrogen isotopes of water",
+                variablenamecv = "delta-D of H2O")
+```
+
+Prepare a data frame of new sample results called `new_sample_results` with columns sample_code, `d 18O`, `d D`, and `origin_sample_date. Only have rows with data to upload. 
+
+```{r}
+new_sample_results <- new_samples %>%
+  dplyr::select(sample_code, `d 18O`, `d D`, origin_sample_date)
+new_sample_results <- new_sample_results %>% dplyr::filter(!is.na(`d 18O`))
+```
+
+Format time correctly. Need a time of the sample analysis action. The data value can be associated with the sample collection datetime so keep that in there too. 
+
+```{r}
+new_sample_results$collection_datetime <- 
+  strptime(paste(new_sample_results$origin_sample_date, "12:00:00"),
+         format = "%Y-%m-%d %H:%M:%S", tz = "")
+
+new_sample_results$analysis_datetime <- "2018-04-23 12:00:00"
+```
+
+Specify the units.
+
+```{r}
+unitsabbreviation = "per mil VSMOW"
+```
+
+Specify the variable codes. 
+
+```{r}
+variablecode1 = "delta_18OOfH2O"
+variablecode2 = "delta_DOfH2O"
+```
+
+Specify other necessary metadata parameters. 
+
+```{r}
+utcoffset <- format(Sys.time(), "%z")
+utcoffset <- as.integer(substr(utcoffset, 1,3))
+actiontypecv = "Specimen analysis"
+resulttypecv = "Measurement"
+censorcodecv = "Not censored"
+qualitycodecv = "Unknown"
+aggregationstatisticcv = "Sporadic"
+timeaggregationinterval = 1 # assume 1 minute
+timeaggregationintervalunitsid = dbGetQuery(db, "SELECT unitsid FROM odm2.units WHERE unitsname = 'Minute'") # minute
+processlinglevelid = 2 # definition = "Quality controlled data" # processinglevelcode = 1
+valuecount = 1
+sampledmediumcv = "Liquid aqueous"
+```
+
+Load function to insert sample results and run function over all rows in dataframe. This is where the magic happens!
+
+```{r, eval=FALSE}
+sapply(1:nrow(new_sample_results),
+       function(x) db_insert_samle_results(x))
+```
+

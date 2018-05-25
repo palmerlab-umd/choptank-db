@@ -22,7 +22,7 @@ library(uuid)
 Then connect to the database
 
 ```{r}
-password <- scan(".pgpass", what="")
+password <- scan("../choptank-db/.pgpass", what="")
 
 db <- dbConnect(PostgreSQL(), 
                 host = "sesync-postgis01.research.sesync.org",
@@ -34,8 +34,8 @@ db <- dbConnect(PostgreSQL(),
 Run these files to define functions to use later. 
 
 ```{r}
-source("db_insert_measurements.R")
-source("helpers.R")
+source("../rodm2/R/db_insert_measurements.R")
+source("../rodm2/R/helpers.R")
 ```
 
 # Upload and prepare data
