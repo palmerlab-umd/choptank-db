@@ -176,31 +176,63 @@ $(document).ready(function () {
 
 
 <!-- rnb-text-begin -->
+<blockquote>
+<p>Download the Rmarkdown file that created this page using the <strong>Code</strong> button above</p>
+</blockquote>
 <p>Own your data! Here’s how to record who performed actions recorded in the database.</p>
-<div id="make-sure-you-exist-in-the-database" class="section level2">
-<h2>Make sure you exist in the database</h2>
+<!-- rnb-text-end -->
+<!-- rnb-text-begin -->
+<div id="first-make-sure-you-exist-in-the-database" class="section level3">
+<h3>First make sure you exist (in the database)</h3>
 <p>You’ll need to be connected to the database if you aren’t already.</p>
 <!-- rnb-text-end -->
 <!-- rnb-text-begin -->
+<p>Find out who’s there already:</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShyb2RtMilcbmRiX2Rlc2NyaWJlX3BlcnNvbihkYiA9IGRiLCBcbiAgICAgICAgICAgICAgICAgICBQZXJzb25GaXJzdE5hbWUgPSBcIldhbmRhXCIsIFxuICAgICAgICAgICAgICAgICAgIFBlcnNvbkxhc3ROYW1lID0gXCJXZXRsYW5kXCIsIFxuICAgICAgICAgICAgICAgICAgIEFmZmlsaWF0aW9uU3RhcnREYXRlID0gXCIyMDE4LTAxLTAxXCIsIFxuICAgICAgICAgICAgICAgICAgIFByaW1hcnlFbWFpbCA9IFwid2VuZHlAc3dhbXBzLmVkdVwiKVxuYGBgIn0= -->
+<table>
+<thead>
+<tr class="header">
+<th align="right">affiliationid</th>
+<th align="left">personfirstname</th>
+<th align="left">personlastname</th>
+<th align="left">primaryemail</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">2</td>
+<td align="left">Wendy</td>
+<td align="left">Wetland</td>
+<td align="left"><a href="mailto:wendy@swamps.edu">wendy@swamps.edu</a></td>
+</tr>
+<tr class="even">
+<td align="right">4</td>
+<td align="left">Kelly</td>
+<td align="left">Hondula</td>
+<td align="left"><a href="mailto:khondula@sesync.org">khondula@sesync.org</a></td>
+</tr>
+</tbody>
+</table>
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Add a new person with the <code>db_describe_person</code> function.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShyb2RtMilcbmRiX2Rlc2NyaWJlX3BlcnNvbihkYiA9IGRiLCBcbiAgICAgICAgICAgICAgICAgICBQZXJzb25GaXJzdE5hbWUgPSBcIldlbmR5XCIsIFxuICAgICAgICAgICAgICAgICAgIFBlcnNvbkxhc3ROYW1lID0gXCJXZXRsYW5kXCIsIFxuICAgICAgICAgICAgICAgICAgIEFmZmlsaWF0aW9uU3RhcnREYXRlID0gXCIyMDE4LTAxLTAxXCIsIFxuICAgICAgICAgICAgICAgICAgIFByaW1hcnlFbWFpbCA9IFwid2VuZHlAc3dhbXBzLmVkdVwiKVxuYGBgIn0= -->
 <pre class="r"><code>library(rodm2)
 db_describe_person(db = db, 
-                   PersonFirstName = &quot;Wanda&quot;, 
+                   PersonFirstName = &quot;Wendy&quot;, 
                    PersonLastName = &quot;Wetland&quot;, 
                    AffiliationStartDate = &quot;2018-01-01&quot;, 
                    PrimaryEmail = &quot;wendy@swamps.edu&quot;)</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiV2FuZGEgV2V0bGFuZCBoYXMgYmVlbiBlbnRlcmVkIGludG8gdGhlIFBlb3BsZSB0YWJsZS5cbiJ9 -->
-<pre><code>Wanda Wetland has been entered into the People table.</code></pre>
-<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 </div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiQWRkIHlvdXJzZWxmIHRvIHRoZSBkYXRhYmFzZSIKb3V0cHV0OiBodG1sX25vdGVib29rCi0tLQoKT3duIHlvdXIgZGF0YSEgSGVyZSdzIGhvdyB0byByZWNvcmQgd2hvIHBlcmZvcm1lZCBhY3Rpb25zIHJlY29yZGVkIGluIHRoZSBkYXRhYmFzZS4gCgojIyBNYWtlIHN1cmUgeW91IGV4aXN0IGluIHRoZSBkYXRhYmFzZQoKWW91J2xsIG5lZWQgdG8gYmUgY29ubmVjdGVkIHRvIHRoZSBkYXRhYmFzZSBpZiB5b3UgYXJlbid0IGFscmVhZHkuCgpgYGB7ciwgaW5jbHVkZSA9IEZBTFNFLCBtZXNzYWdlPUZBTFNFfQpsaWJyYXJ5KFJQb3N0Z3JlU1FMKQpwYXNzd29yZCA8LSByZWFkbGluZShwcm9tcHQ9IkVudGVyIHBhc3N3b3JkOiAiKQpkYiA8LSBkYkNvbm5lY3QoUG9zdGdyZVNRTCgpLCAKICAgICAgICAgICAgICAgIGhvc3QgPSAic2VzeW5jLXBvc3RnaXMwMS5yZXNlYXJjaC5zZXN5bmMub3JnIiwKICAgICAgICAgICAgICAgIGRibmFtZSA9ICJjaG9wdGFuayIsIAogICAgICAgICAgICAgICAgdXNlciA9ICJwYWxtZXJncm91cCIsCiAgICAgICAgICAgICAgICBwYXNzd29yZCA9IHBhc3N3b3JkKQpgYGAKCgpgYGB7cn0KbGlicmFyeShyb2RtMikKZGJfZGVzY3JpYmVfcGVyc29uKGRiID0gZGIsIAogICAgICAgICAgICAgICAgICAgUGVyc29uRmlyc3ROYW1lID0gIldhbmRhIiwgCiAgICAgICAgICAgICAgICAgICBQZXJzb25MYXN0TmFtZSA9ICJXZXRsYW5kIiwgCiAgICAgICAgICAgICAgICAgICBBZmZpbGlhdGlvblN0YXJ0RGF0ZSA9ICIyMDE4LTAxLTAxIiwgCiAgICAgICAgICAgICAgICAgICBQcmltYXJ5RW1haWwgPSAid2VuZHlAc3dhbXBzLmVkdSIpCmBgYAoKCg==</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiQWRkIHlvdXJzZWxmIHRvIHRoZSBkYXRhYmFzZSIKb3V0cHV0OiBodG1sX25vdGVib29rCi0tLQoKPiBEb3dubG9hZCB0aGUgUm1hcmtkb3duIGZpbGUgdGhhdCBjcmVhdGVkIHRoaXMgcGFnZSB1c2luZyB0aGUgKipDb2RlKiogYnV0dG9uIGFib3ZlCgpPd24geW91ciBkYXRhISBIZXJlJ3MgaG93IHRvIHJlY29yZCB3aG8gcGVyZm9ybWVkIGFjdGlvbnMgcmVjb3JkZWQgaW4gdGhlIGRhdGFiYXNlLiAKCmBgYHtyIHNldHVwLCBpbmNsdWRlPUZBTFNFLCBtZXNzYWdlPUZBTFNFfQprbml0cjo6b3B0c19jaHVuayRzZXQoZWNobyA9IFRSVUUpCmxpYnJhcnkoa25pdHIpCmxpYnJhcnkobWFncml0dHIpCmBgYAoKCiMjIyBGaXJzdCBtYWtlIHN1cmUgeW91IGV4aXN0IChpbiB0aGUgZGF0YWJhc2UpCgpZb3UnbGwgbmVlZCB0byBiZSBjb25uZWN0ZWQgdG8gdGhlIGRhdGFiYXNlIGlmIHlvdSBhcmVuJ3QgYWxyZWFkeS4KCmBgYHtyLCBpbmNsdWRlID0gRkFMU0UsIG1lc3NhZ2U9RkFMU0V9CmxpYnJhcnkoUlBvc3RncmVTUUwpCnBhc3N3b3JkIDwtIHJlYWRsaW5lKHByb21wdD0iRW50ZXIgcGFzc3dvcmQ6ICIpCmRiIDwtIGRiQ29ubmVjdChQb3N0Z3JlU1FMKCksIAogICAgICAgICAgICAgICAgaG9zdCA9ICJzZXN5bmMtcG9zdGdpczAxLnJlc2VhcmNoLnNlc3luYy5vcmciLAogICAgICAgICAgICAgICAgZGJuYW1lID0gImNob3B0YW5rIiwgCiAgICAgICAgICAgICAgICB1c2VyID0gInBhbG1lcmdyb3VwIiwKICAgICAgICAgICAgICAgIHBhc3N3b3JkID0gcGFzc3dvcmQpCmBgYAoKRmluZCBvdXQgd2hvJ3MgdGhlcmUgYWxyZWFkeToKCmBgYHtyLCBlY2hvPUZBTFNFLCByZXN1bHRzPSdhc2lzJ30KZGJSZWFkVGFibGUoZGIsIGMoIm9kbTIiLCAicGVvcGxlIikpICU+JQogIGRwbHlyOjpsZWZ0X2pvaW4oZGJSZWFkVGFibGUoZGIsIGMoIm9kbTIiLCAiYWZmaWxpYXRpb25zIikpLAogICAgICAgICAgICAgICAgICAgYnkgPSAicGVyc29uaWQiKSAlPiUKICBkcGx5cjo6c2VsZWN0KGFmZmlsaWF0aW9uaWQsIHBlcnNvbmZpcnN0bmFtZSwgcGVyc29ubGFzdG5hbWUsIHByaW1hcnllbWFpbCkgJT4lCiAga25pdHI6OmthYmxlKCkKYGBgCgpBZGQgYSBuZXcgcGVyc29uIHdpdGggdGhlIGBkYl9kZXNjcmliZV9wZXJzb25gIGZ1bmN0aW9uLiAKCmBgYHtyfQpsaWJyYXJ5KHJvZG0yKQpkYl9kZXNjcmliZV9wZXJzb24oZGIgPSBkYiwgCiAgICAgICAgICAgICAgICAgICBQZXJzb25GaXJzdE5hbWUgPSAiV2VuZHkiLCAKICAgICAgICAgICAgICAgICAgIFBlcnNvbkxhc3ROYW1lID0gIldldGxhbmQiLCAKICAgICAgICAgICAgICAgICAgIEFmZmlsaWF0aW9uU3RhcnREYXRlID0gIjIwMTgtMDEtMDEiLCAKICAgICAgICAgICAgICAgICAgIFByaW1hcnlFbWFpbCA9ICJ3ZW5keUBzd2FtcHMuZWR1IikKYGBgCgoK</div>
 
 
 
