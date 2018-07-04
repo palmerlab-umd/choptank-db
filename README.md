@@ -40,7 +40,8 @@ This website contains links and information for interacting with the Choptank Hy
 
 ### Guides
 
-* [New Insert soil moisture data](https://palmerlab-umd.github.io/choptank-db/soil-moisture-notebook.nb.html)
+* [Add a person](https://palmerlab-umd.github.io/choptank-db/people.nb.html)
+* [Insert soil moisture data](https://palmerlab-umd.github.io/choptank-db/soil-moisture-notebook.nb.html) _Notebook format_
 * [Insert soil moisture data](https://palmerlab-umd.github.io/choptank-db/soil-moisture-measurements.html)
 
 ---
