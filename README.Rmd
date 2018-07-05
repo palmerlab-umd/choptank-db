@@ -20,7 +20,7 @@ This website contains links and information for interacting with the Choptank Hy
 
 ---
 
-### Sites information
+### Sites
 
 * [List of sites in database](https://palmerlab-umd.github.io/choptank-db/sites.html) *as of June 22, 2018*
 * [Network of sites and site relationships](https://palmerlab-umd.github.io/choptank-db/sites-network.html) *as of May 25, 2018*
@@ -35,6 +35,10 @@ This website contains links and information for interacting with the Choptank Hy
 ### Methods
 
 * [List of methods in database](https://palmerlab-umd.github.io/choptank-db/methods.html) *as of June 22, 2018*
+
+### Variables
+
+* [List of variables in database]((https://palmerlab-umd.github.io/choptank-db/variables.nb.html) *as of July 4, 2018
 
 ---
 
