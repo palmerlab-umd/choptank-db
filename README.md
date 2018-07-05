@@ -38,7 +38,7 @@ This website contains links and information for interacting with the Choptank Hy
 
 ### Variables
 
-* [List of variables in database]((https://palmerlab-umd.github.io/choptank-db/variables.nb.html) *as of July 4, 2018
+* [List of variables in database](https://palmerlab-umd.github.io/choptank-db/current-variables.nb.html) *as of July 4, 2018
 
 ---
 
