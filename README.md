@@ -34,11 +34,11 @@ This website contains links and information for interacting with the Choptank Hy
 
 ### Methods
 
-* [List of methods in database](https://palmerlab-umd.github.io/choptank-db/methods.html) *as of June 22, 2018*
+* [List of methods in database](https://palmerlab-umd.github.io/choptank-db/current-methods.nb.html) *as of July 5, 2018*
 
 ### Variables
 
-* [List of variables in database](https://palmerlab-umd.github.io/choptank-db/current-variables.nb.html) *as of July 4, 2018
+* [List of variables in database](https://palmerlab-umd.github.io/choptank-db/current-variables.nb.html) *as of July 4, 2018*
 
 ---
 
