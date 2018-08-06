@@ -59,6 +59,7 @@ This website contains links and information for interacting with the Choptank Hy
 * [Query time series data](https://palmerlab-umd.github.io/choptank-db/query-time-series.nb.html)
 
 **Sample data**
+
 * [Insert sample data](https://palmerlab-umd.github.io/choptank-db/sample-example.nb.html)
 
 ---
