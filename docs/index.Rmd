@@ -20,6 +20,10 @@ This website contains links and information for interacting with the Choptank Hy
 
 ---
 
+### Example Data!
+
+* [Water Level Data](https://palmerlab-umd.github.io/choptank-db/PT_data_demo.html)
+
 ### Sites
 
 * [List of sites in database](https://palmerlab-umd.github.io/choptank-db/current-sites.nb.html) *updated August 30, 2018*
