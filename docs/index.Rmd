@@ -22,7 +22,7 @@ This website contains links and information for interacting with the Choptank Hy
 
 ### Sites
 
-* [List of sites in database](https://palmerlab-umd.github.io/choptank-db/current-sites.nb.html) *as of June 22, 2018*
+* [List of sites in database](https://palmerlab-umd.github.io/choptank-db/current-sites.nb.html) *updated August 30, 2018*
 * [Network of sites and site relationships](https://palmerlab-umd.github.io/choptank-db/sites-network.html) *as of May 25, 2018*
 * [Map of survey points from March 13-15](https://palmerlab-umd.github.io/choptank-db/survey_pts.html)
 * [Map of Nate's Approximate Well Locations](https://palmerlab-umd.github.io/choptank-db/ApproxWellLoc.html) 
