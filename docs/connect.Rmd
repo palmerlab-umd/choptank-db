@@ -1,0 +1,56 @@
+---
+title: "Connect to choptank-db"
+output:
+  html_notebook:
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(magrittr)
+```
+
+Make sure you have
+
+* installed the `RPostgreSQL` library with `install.packages("RPostgreSQL")`.
+* saved the database password as `.pgpass` in your working directory.
+* connected to VPN or are using rstudio.sesync.org
+
+```{r, message=FALSE}
+library(RPostgreSQL)
+```
+
+Read in password if you have it saved in your working directory:
+```{r pw, message=FALSE, results='hide'}
+password <- scan(".pgpass", what="")
+```
+Or create a prompt to enter it in the Console window:
+```{r}
+password <- readline(prompt="Enter password: ")
+```
+
+
+Create connection object called `db`. These guides will always use the name `db` for the connection object. All of the functions that send and receive information from the database will have this as the first argument. 
+
+```{r}
+db <- dbConnect(PostgreSQL(), 
+                host = "sesync-postgis01.research.sesync.org",
+                dbname = "choptank", 
+                user = "palmergroup",
+                password = password)
+```
+
+If you want to read a whole table from the database into your R environment, you can use `dbReadTable()`. 
+```{r}
+samplingfeatures <- dbReadTable(db, c("odm2", "samplingfeatures"))
+```
+
+Disconnect at the end of your session
+
+```{r}
+dbDisconnect(db)
+```
