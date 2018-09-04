@@ -49,6 +49,7 @@ This website contains links and information for interacting with the Choptank Hy
 ### Guides
 
 * [Add a person](https://palmerlab-umd.github.io/choptank-db/people.nb.html)
+* [Add a site](https://palmerlab-umd.github.io/choptank-db/new-sites.nb.html)
 
 **Soil moisture data**
 
@@ -62,7 +63,7 @@ This website contains links and information for interacting with the Choptank Hy
 * [Insert time series data](https://palmerlab-umd.github.io/choptank-db/wind-data-upload.nb.html)
 * [Query time series data](https://palmerlab-umd.github.io/choptank-db/query-time-series.nb.html)
 
-**Sample data**
+**Sample/Specimen data**
 
 * [Insert sample data](https://palmerlab-umd.github.io/choptank-db/sample-example.nb.html)
 
