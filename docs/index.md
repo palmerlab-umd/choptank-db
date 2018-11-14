@@ -23,6 +23,7 @@ This website contains links and information for interacting with the Choptank Hy
 ### Example Data!
 
 * [Water Level Data](https://palmerlab-umd.github.io/choptank-db/PT_data_demo.html)
+* [Wind speed at QB and ND](https://palmerlab-umd.github.io/choptank-db/windspeed_ND_QB_July-Sept.html)
 
 ### Sites
 
