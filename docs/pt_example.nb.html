@@ -239,6 +239,8 @@ baro &lt;- data.frame(
 <pre class="r"><code>get_cv_terms(&quot;medium&quot;)</code></pre>
 <pre><code>## medium controlled vocabulary terms: &quot;Air&quot;, &quot;Equipment&quot;, &quot;Gas&quot;, &quot;Habitat&quot;, &quot;Ice&quot;, &quot;Liquid aqueous&quot;, &quot;Liquid organic&quot;, &quot;Mineral&quot;, &quot;Not applicable&quot;, &quot;Organism&quot;, &quot;Other&quot;, &quot;Particulate&quot;, &quot;Regolith&quot;, &quot;Rock&quot;, &quot;Sediment&quot;, &quot;Snow&quot;, &quot;Soil&quot;, &quot;Tissue&quot;, &quot;Unknown&quot;, &quot;Vegetation&quot;</code></pre>
 <p>One way to search for terms (e.g. “Degree”) is to grep the output of the get_cv_terms function.</p>
+<pre class="r"><code>unitscv &lt;- get_cv_terms(&quot;units&quot;)
+grep(pattern = &quot;Degree&quot;, unitscv, value = TRUE)</code></pre>
 <p>Make sure to use names (<code>column =</code> and <code>units =</code>) in varables list!</p>
 <pre class="r"><code>rodm2::db_insert_results_ts(db = db, # database connection
                      datavalues = baro, # data with Timestamp column
@@ -346,6 +348,36 @@ dbGetQuery(db, sql1)</code></pre>
                        &quot;Water depth&quot; = list(column = &quot;wd&quot;, units = &quot;Meter&quot;)))</code></pre>
 <pre><code>## Water depth has been added to the Variables table.</code></pre>
 <pre><code>## Warning: Closing open result set, pending rows</code></pre>
+</div>
+<div id="postgres-version" class="section level1">
+<h1>Postgres version</h1>
+<p>To query all time series in the postgres database (table names are prefixed with <code>odm2.</code>)</p>
+<pre class="r"><code>sql1 &lt;- &quot;SELECT res.resultid, var.variablecode, meth.methodcode, meth.methodtypecv, act.begindatetime, act.enddatetime, sf.samplingfeaturecode, pl.processinglevelcode 
+FROM odm2.results res
+INNER JOIN odm2.variables var ON var.variableid = res.variableid
+INNER JOIN odm2.featureactions fa ON fa.featureactionid = res.featureactionid
+INNER JOIN odm2.actions act ON act.actionid = fa.actionid
+INNER JOIN odm2.methods meth ON meth.methodid = act.methodid
+INNER JOIN odm2.samplingfeatures sf ON sf.samplingfeatureid = fa.samplingfeatureid
+INNER JOIN odm2.processinglevels pl ON pl.processinglevelid = res.processinglevelid
+WHERE res.resulttypecv = 'Time series coverage'&quot;
+
+ts_results &lt;- dbGetQuery(db, sql1)</code></pre>
+<p>Insert the result id of interest here to get the actual datapoints</p>
+<pre class="r"><code>dbGetQuery(db, &quot;SELECT * from odm2.timeseriesresultvalues WHERE resultid = '6938'&quot;)</code></pre>
+<p>If you want to modify the time series output to include more or less than exactly what is in the timeseriesresultvalues table you can use joins. Replace the number of the result id of interest in the line “WHERE res.resultid = ‘1’”.</p>
+<pre class="r"><code>sql1 &lt;- &quot;SELECT tsrv.resultid, tsrv.datavalue, tsrv.valuedatetime, tsrv.valuedatetimeutcoffset, tsrv.censorcodecv, tsrv.qualitycodecv, units.unitsname, sf.samplingfeaturecode, pl.processinglevelcode, meth.methodcode
+FROM odm2.timeseriesresultvalues tsrv
+INNER JOIN odm2.results res ON res.resultid = tsrv.resultid
+LEFT JOIN odm2.units units ON units.unitsid = res.unitsid
+INNER JOIN odm2.variables var ON var.variableid = res.variableid
+INNER JOIN odm2.featureactions fa ON fa.featureactionid = res.featureactionid
+INNER JOIN odm2.actions act ON act.actionid = fa.actionid
+INNER JOIN odm2.methods meth ON meth.methodid = act.methodid
+INNER JOIN odm2.samplingfeatures sf ON sf.samplingfeatureid = fa.samplingfeatureid
+INNER JOIN odm2.processinglevels pl ON pl.processinglevelid = res.processinglevelid
+WHERE res.resultid = '6938'&quot;
+dbGetQuery(db, sql1)</code></pre>
 </div>
 
 
